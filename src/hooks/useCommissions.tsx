@@ -31,18 +31,21 @@ export function useCommissions() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Get user ID from auth context
+  const userId = user?.id;
+
   const fetchCommissions = async (): Promise<Commission[]> => {
-    if (!profile?.user_id) {
-      console.log('No profile user_id available for commissions');
+    if (!userId) {
+      console.log('No user ID available for commissions');
       return [];
     }
 
-    console.log('Fetching commissions for profile ID:', profile.user_id);
+    console.log('Fetching commissions for user ID:', userId);
 
     const { data, error } = await supabase
       .from("commissions")
       .select("*")
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -55,7 +58,7 @@ export function useCommissions() {
   };
 
   const createCommission = async (commission: CommissionFormValues): Promise<Commission> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const totalFees = commission.commission + commission.fees;
 
@@ -63,7 +66,7 @@ export function useCommissions() {
       .from("commissions")
       .insert([{ 
         ...commission, 
-        user_id: profile.user_id,
+        user_id: userId,
         total_fees: totalFees
       }])
       .select()
@@ -74,7 +77,7 @@ export function useCommissions() {
   };
 
   const updateCommission = async ({ commission_id, ...commissionData }: { commission_id: string } & Partial<CommissionFormValues>): Promise<Commission> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     // Prepare update data - only include the form fields
     const updateData: any = { ...commissionData };
@@ -88,7 +91,7 @@ export function useCommissions() {
       .from("commissions")
       .update(updateData)
       .eq("commission_id", commission_id)
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -97,28 +100,28 @@ export function useCommissions() {
   };
 
   const deleteCommission = async (commission_id: string): Promise<void> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { error } = await supabase
       .from("commissions")
       .delete()
       .eq("commission_id", commission_id)
-      .eq("user_id", profile.user_id);
+      .eq("user_id", userId);
 
     if (error) throw error;
   };
 
   const commissionsQuery = useQuery({
-    queryKey: ["commissions", profile?.user_id],
+    queryKey: ["commissions", userId],
     queryFn: fetchCommissions,
-    enabled: !!profile?.user_id,
+    enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
   });
 
   const createCommissionMutation = useMutation({
     mutationFn: createCommission,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["commissions", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["commissions", userId] });
       toast({
         title: "Commission structure added successfully",
       });
@@ -136,7 +139,7 @@ export function useCommissions() {
   const updateCommissionMutation = useMutation({
     mutationFn: updateCommission,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["commissions", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["commissions", userId] });
       toast({
         title: "Commission structure updated successfully",
       });
@@ -154,7 +157,7 @@ export function useCommissions() {
   const deleteCommissionMutation = useMutation({
     mutationFn: deleteCommission,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["commissions", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["commissions", userId] });
       toast({
         title: "Commission structure deleted successfully",
       });

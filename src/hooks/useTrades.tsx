@@ -31,18 +31,21 @@ export function useTrades() {
   const { commissions } = useCommissions();
   const { settings } = useGlobalSettings();
 
+  // Get user ID from auth context
+  const userId = user?.id;
+
   // Fetch real trades query
   const tradesQuery = useQuery({
-    queryKey: ["trades", profile?.user_id],
+    queryKey: ["trades", userId],
     queryFn: () => {
-      if (!profile?.user_id) {
-        console.log("No profile user_id available for trades fetch");
+      if (!userId) {
+        console.log("No user ID available for trades fetch");
         return [];
       }
-      console.log("Fetching trades for profile ID:", profile.user_id);
-      return fetchTrades(profile.user_id);
+      console.log("Fetching trades for user ID:", userId);
+      return fetchTrades(userId);
     },
-    enabled: !!user && !!profile?.user_id,
+    enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -58,14 +61,14 @@ export function useTrades() {
   const trades = useMemo(() => {
     const realTrades = tradesQuery.data || [];
     
-    if (shouldShowDummyData(realTrades) && profile?.user_id) {
+    if (shouldShowDummyData(realTrades) && userId) {
       console.log("No real trades found, showing dummy data");
-      return generateDummyTrades(profile.user_id);
+      return generateDummyTrades(userId);
     }
     
     console.log("Showing real trades:", realTrades.length);
     return realTrades;
-  }, [tradesQuery.data, profile?.user_id]);
+  }, [tradesQuery.data, userId]);
 
   // Check if currently showing dummy data
   const isShowingDummyData = useMemo(() => {
@@ -75,8 +78,8 @@ export function useTrades() {
   // Create trade mutation
   const createTradeMutation = useMutation({
     mutationFn: async (tradeData: Omit<Trade, "trade_id" | "user_id" | "net_pl" | "percent_gain" | "trade_result" | "r2r" | "trade_duration">) => {
-      if (!profile?.user_id) {
-        throw new Error("User profile not found");
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
       
       // Process notes to replace any base64 images with uploaded URLs
@@ -90,10 +93,10 @@ export function useTrades() {
         tradeData.market_type = VALID_MARKET_TYPES[0]; // Default to first valid type
       }
 
-      return createTrade({...tradeData, notes: processedNotes}, profile.user_id, commissions);
+      return createTrade({...tradeData, notes: processedNotes}, userId, commissions);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trades", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["trades", userId] });
       toast({
         title: "Trade added successfully",
       });
@@ -125,7 +128,7 @@ export function useTrades() {
       return updateTrade(processedData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trades", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["trades", userId] });
       toast({
         title: "Trade updated successfully",
       });
@@ -143,13 +146,13 @@ export function useTrades() {
   // Delete trade mutation
   const deleteTradeMutation = useMutation({
     mutationFn: (tradeId: string) => {
-      if (!profile?.user_id) {
-        throw new Error("User profile not found");
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
-      return deleteTrade(tradeId, profile.user_id);
+      return deleteTrade(tradeId, userId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trades", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["trades", userId] });
       toast({
         title: "Trade deleted successfully",
       });
@@ -181,7 +184,8 @@ export function useTrades() {
 
   return {
     trades,
-    isLoading: tradesQuery.isLoading,
+    // If we're showing dummy data, we're not loading anymore
+    isLoading: isShowingDummyData ? false : tradesQuery.isLoading,
     isError: tradesQuery.isError,
     error: tradesQuery.error,
     isShowingDummyData,

@@ -65,7 +65,7 @@ const AccountDialog = ({
       const {
         data: accounts,
         error: accountsError
-      } = await supabase.from('accounts').select('account_id').eq('user_id', profile.user_id);
+      } = await supabase.from('accounts').select('account_id').eq('user_id', user.id);
       if (accountsError) {
         console.error('Error fetching accounts for limit check:', accountsError);
         // If we can't check, allow creation
@@ -76,7 +76,7 @@ const AccountDialog = ({
 
       // Get user's subscription limits using the centralized function
       const { data: accessData, error: accessError } = await supabase
-        .rpc('get_user_access_matrix', { auth_user_id: profile.auth_id });
+        .rpc('get_user_access_matrix', { auth_user_id: user.id });
       
       if (accessError || !accessData || accessData.length === 0) {
         console.log('No access data found, allowing account creation');
@@ -84,10 +84,12 @@ const AccountDialog = ({
       }
       
       const userAccess = accessData[0];
-      const accountLimit = userAccess.accountsLimit || 0;
+      // Use snake_case from database (accountslimit) with fallback to camelCase
+      const accountLimit = userAccess.accountslimit ?? userAccess.accountsLimit ?? 0;
       console.log('Account limit for plan:', accountLimit);
       
-      if (currentAccountsCount >= accountLimit) {
+      // -1 means unlimited
+      if (accountLimit !== -1 && currentAccountsCount >= accountLimit) {
         toast({
           title: "Limit Exceeded",
           description: `You have reached the maximum number of trading accounts (${accountLimit}) for your plan.`,

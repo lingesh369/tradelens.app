@@ -17,18 +17,8 @@ export const usePlanInfo = () => {
     async function fetchPlanInfo() {
       if (user) {
         try {
-          // Get user's subscription info
-          const { data: userData, error: userError } = await supabase
-            .from('app_users')
-            .select('user_id')
-            .eq('auth_id', user.id)
-            .single();
-            
-          if (userError || !userData?.user_id) {
-            // Fallback for new users - give them a 7-day free trial
-            setPlanInfo({ name: 'Free Trial', isExpired: false, daysLeft: 7 });
-            return;
-          }
+          // The user.id from auth IS the user_id in app_users and other tables
+          const userId = user.id;
           
           // Get subscription details (both active and expired)
           const { data: subData, error: subError } = await supabase
@@ -38,7 +28,7 @@ export const usePlanInfo = () => {
               end_date,
               subscription_plans (name)
             `)
-            .eq('user_id', userData.user_id)
+            .eq('user_id', userId)
             .in('status', ['active', 'expired'])
             .order('created_at', { ascending: false })
             .limit(1)

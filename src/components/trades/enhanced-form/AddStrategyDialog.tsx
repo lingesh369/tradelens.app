@@ -49,9 +49,11 @@ export function AddStrategyDialog({ open, onOpenChange, onStrategyAdded }: AddSt
       }
       
       const userAccess = accessData[0];
-      const strategyLimit = userAccess.strategiesLimit || 0;
+      // Use snake_case from database (strategieslimit) with fallback to camelCase
+      const strategyLimit = userAccess.strategieslimit ?? userAccess.strategiesLimit ?? 0;
       
-      if (currentStrategiesCount >= strategyLimit) {
+      // -1 means unlimited
+      if (strategyLimit !== -1 && currentStrategiesCount >= strategyLimit) {
         toast({
           title: "Limit Exceeded",
           description: `You have reached the maximum number of strategies (${strategyLimit}) for your plan.`,

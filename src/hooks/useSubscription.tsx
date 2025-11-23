@@ -154,17 +154,8 @@ export const useSubscription = () => {
       try {
         if (!user) return null;
 
-        // First get the user's internal ID
-        const { data: userData, error: userError } = await supabase
-          .from("app_users")
-          .select("user_id")
-          .eq("auth_id", user.id)
-          .single();
-
-        if (userError || !userData) {
-          console.error("Error fetching user data:", userError);
-          return null;
-        }
+        // The user.id from auth IS the user_id in app_users and other tables
+        const userId = user.id;
 
         // Get subscription with plan details
         const { data: subData, error: subError } = await supabase
@@ -185,7 +176,7 @@ export const useSubscription = () => {
               profile_access
             )
           `)
-          .eq("user_id", userData.user_id)
+          .eq("user_id", userId)
           .in("status", ["active", "expired"])
           .order('created_at', { ascending: false })
           .limit(1)
@@ -270,23 +261,14 @@ export const useSubscription = () => {
       try {
         if (!user) return [];
 
-        // Get user's internal ID first
-        const { data: userData, error: userError } = await supabase
-          .from("app_users")
-          .select("user_id")
-          .eq("auth_id", user.id)
-          .single();
-
-        if (userError || !userData) {
-          console.error("Error fetching user data:", userError);
-          return [];
-        }
+        // The user.id from auth IS the user_id in app_users and other tables
+        const userId = user.id;
 
         const { data, error } = await supabase
           .from("payments")
           .select("*")
-          .eq("user_id", userData.user_id)
-          .order("payment_date", { ascending: false });
+          .eq("user_id", userId)
+          .order("payment_date", { ascending: false});
 
         if (error) throw error;
         

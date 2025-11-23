@@ -43,34 +43,25 @@ export const useChat = () => {
     if (!user) return;
 
     try {
-      // Get user's internal ID first
-      const { data: userData, error: userError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .single();
-
-      if (userError || !userData) {
-        console.error("Error fetching user data:", userError);
-        return;
-      }
+      // The user.id from auth IS the user_id in app_users and other tables
+      const userId = user.id;
 
       // Using type assertion since the types haven't been updated yet
       const { data, error } = await (supabase as any)
         .from('chats')
         .select(`
           *,
-          participant1:app_users!chats_participant1_id_fkey(user_id, username, first_name, last_name, profile_picture_url),
-          participant2:app_users!chats_participant2_id_fkey(user_id, username, first_name, last_name, profile_picture_url)
+          participant1:app_users!chats_participant1_id_fkey(id, username, first_name, last_name, avatar_url),
+          participant2:app_users!chats_participant2_id_fkey(id, username, first_name, last_name, avatar_url)
         `)
-        .or(`participant1_id.eq.${userData.user_id},participant2_id.eq.${userData.user_id}`)
+        .or(`participant1_id.eq.${userId},participant2_id.eq.${userId}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
       const chatsWithParticipants = data?.map((chat: any) => ({
         ...chat,
-        other_participant: chat.participant1_id === userData.user_id ? chat.participant2 : chat.participant1
+        other_participant: chat.participant1_id === userId ? chat.participant2 : chat.participant1
       })) || [];
 
       setChats(chatsWithParticipants);

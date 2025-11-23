@@ -22,12 +22,14 @@ export const useStrategyLimits = () => {
       const { data: accessData, error: accessError } = await supabase
         .rpc('get_user_access_matrix', { auth_user_id: user.id });
 
-      if (accessError || !accessData || accessData.length === 0) {
+      if (accessError || !accessData || (Array.isArray(accessData) && accessData.length === 0)) {
         console.log('No access data found, using Free Trial defaults');
         setStrategiesLimit(3); // Free Trial default
       } else {
-        const userAccess = accessData[0];
-        const limit = userAccess.strategiesLimit || 3;
+        const userAccess: any = Array.isArray(accessData) ? accessData[0] : accessData;
+        // Use snake_case from database (strategieslimit) with fallback to camelCase
+        const limit = userAccess.strategieslimit ?? userAccess.strategiesLimit ?? 3;
+        console.log('Strategies limit from DB:', limit);
         setStrategiesLimit(limit);
       }
     } catch (error) {
@@ -43,8 +45,9 @@ export const useStrategyLimits = () => {
   }, [user]);
 
   const currentStrategiesCount = strategies.length;
-  const canCreateStrategy = currentStrategiesCount < strategiesLimit;
-  const strategiesRemaining = Math.max(0, strategiesLimit - currentStrategiesCount);
+  // -1 means unlimited
+  const canCreateStrategy = strategiesLimit === -1 || currentStrategiesCount < strategiesLimit;
+  const strategiesRemaining = strategiesLimit === -1 ? Infinity : Math.max(0, strategiesLimit - currentStrategiesCount);
 
   return {
     strategiesLimit,

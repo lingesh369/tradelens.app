@@ -26,18 +26,21 @@ export function useNotes() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Get user ID from auth context
+  const userId = user?.id;
+
   const fetchNotes = async (): Promise<Note[]> => {
-    if (!profile?.user_id) {
-      console.log('No profile user_id available for notes');
+    if (!userId) {
+      console.log('No user ID available for notes');
       return [];
     }
 
-    console.log('Fetching notes for profile ID:', profile.user_id);
+    console.log('Fetching notes for user ID:', userId);
 
     const { data, error } = await supabase
       .from("notes")
       .select("*")
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .order("date", { ascending: false });
 
     if (error) throw error;
@@ -45,15 +48,15 @@ export function useNotes() {
   };
 
   const getNoteByDate = async (date: string): Promise<Note | null> => {
-    if (!profile?.user_id) {
-      console.log('No profile user_id available for getNoteByDate');
+    if (!userId) {
+      console.log('No user ID available for getNoteByDate');
       return null;
     }
     
     const { data, error } = await supabase
       .from("notes")
       .select("*")
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .eq("date", date)
       .maybeSingle();
 
@@ -62,7 +65,7 @@ export function useNotes() {
   };
 
   const createNote = async (noteData: NoteCreateData): Promise<Note> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const preview = noteData.content 
       ? noteData.content.replace(/<[^>]*>/g, '').substring(0, 150) 
@@ -73,7 +76,7 @@ export function useNotes() {
       .insert([{
         ...noteData,
         preview,
-        user_id: profile.user_id
+        user_id: userId
       }])
       .select()
       .single();
@@ -83,7 +86,7 @@ export function useNotes() {
   };
 
   const updateNote = async (noteData: NoteUpdateData): Promise<Note> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const updates: any = { ...noteData };
     
@@ -95,7 +98,7 @@ export function useNotes() {
       .from("notes")
       .update(updates)
       .eq("note_id", noteData.note_id)
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -104,27 +107,27 @@ export function useNotes() {
   };
 
   const deleteNote = async (noteId: string): Promise<void> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { error } = await supabase
       .from("notes")
       .delete()
       .eq("note_id", noteId)
-      .eq("user_id", profile.user_id);
+      .eq("user_id", userId);
 
     if (error) throw error;
   };
 
   const notesQuery = useQuery({
-    queryKey: ["notes", profile?.user_id],
+    queryKey: ["notes", userId],
     queryFn: fetchNotes,
-    enabled: !!profile?.user_id,
+    enabled: !!userId,
   });
 
   const createNoteMutation = useMutation({
     mutationFn: createNote,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", userId] });
       toast({
         title: "Note created",
         description: "Your note has been saved successfully."
@@ -142,7 +145,7 @@ export function useNotes() {
   const updateNoteMutation = useMutation({
     mutationFn: updateNote,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", userId] });
       toast({
         title: "Note updated",
         description: "Your note has been updated successfully."
@@ -160,7 +163,7 @@ export function useNotes() {
   const deleteNoteMutation = useMutation({
     mutationFn: deleteNote,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["notes", userId] });
       toast({
         title: "Note deleted",
         description: "Your note has been deleted."

@@ -36,18 +36,21 @@ export function useAccounts() {
   const { profile } = useUserProfile();
   const queryClient = useQueryClient();
 
+  // Get user ID from auth context
+  const userId = user?.id;
+
   const fetchAccounts = async (): Promise<Account[]> => {
-    if (!profile?.user_id) {
-      console.log('No profile user_id available for accounts');
+    if (!userId) {
+      console.log('No user ID available for accounts');
       return [];
     }
 
-    console.log('Fetching accounts for profile ID:', profile.user_id);
+    console.log('Fetching accounts for user ID:', userId);
 
     const { data, error } = await supabase
       .from("accounts")
       .select("*")
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .order("account_name", { ascending: true });
 
     if (error) {
@@ -60,11 +63,11 @@ export function useAccounts() {
   };
 
   const createAccount = async (account: AccountFormValues): Promise<Account> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from("accounts")
-      .insert([{ ...account, user_id: profile.user_id }])
+      .insert([{ ...account, user_id: userId }])
       .select()
       .single();
 
@@ -73,13 +76,13 @@ export function useAccounts() {
   };
 
   const updateAccount = async ({ account_id, accountData }: { account_id: string; accountData: Partial<AccountFormValues> }): Promise<Account> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from("accounts")
       .update(accountData)
       .eq("account_id", account_id)
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -88,28 +91,28 @@ export function useAccounts() {
   };
 
   const deleteAccount = async (account_id: string): Promise<void> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { error } = await supabase
       .from("accounts")
       .delete()
       .eq("account_id", account_id)
-      .eq("user_id", profile.user_id);
+      .eq("user_id", userId);
 
     if (error) throw error;
   };
 
   const accountsQuery = useQuery({
-    queryKey: ["accounts", profile?.user_id],
+    queryKey: ["accounts", userId],
     queryFn: fetchAccounts,
-    enabled: !!profile?.user_id,
+    enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
   });
 
   const createAccountMutation = useMutation({
     mutationFn: createAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["accounts", userId] });
       toast.success("Account created successfully");
     },
     onError: (error: any) => {
@@ -121,7 +124,7 @@ export function useAccounts() {
   const updateAccountMutation = useMutation({
     mutationFn: updateAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["accounts", userId] });
       toast.success("Account updated successfully");
     },
     onError: (error: any) => {
@@ -133,7 +136,7 @@ export function useAccounts() {
   const deleteAccountMutation = useMutation({
     mutationFn: deleteAccount,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["accounts", userId] });
       toast.success("Account deleted successfully");
     },
     onError: (error: any) => {

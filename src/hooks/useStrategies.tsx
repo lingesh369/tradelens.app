@@ -36,26 +36,13 @@ export function useStrategies() {
         throw new Error("User not authenticated");
       }
 
-      // Get the internal user ID from app_users table
-      const { data: appUser, error: appUserError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", userData.user.id)
-        .single();
-
-      if (appUserError) {
-        console.error("Error fetching internal user ID:", appUserError);
-        throw new Error("Could not get user information");
-      }
-
-      if (!appUser) {
-        throw new Error("User profile not found");
-      }
+      // The user.id from auth IS the user_id in app_users and other tables
+      const userId = userData.user.id;
       
       const { data, error } = await supabase
         .from("strategies")
         .select("*")
-        .eq("user_id", appUser.user_id)
+        .eq("user_id", userId)
         .order("strategy_name", { ascending: true });
         
       if (error) throw error;
@@ -82,28 +69,15 @@ export function useStrategies() {
         throw new Error("User not authenticated");
       }
 
-      // Get the internal user ID from app_users table
-      const { data: appUser, error: appUserError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", userData.user.id)
-        .single();
-
-      if (appUserError) {
-        console.error("Error fetching internal user ID:", appUserError);
-        throw new Error("Could not get user information");
-      }
-
-      if (!appUser) {
-        throw new Error("User profile not found");
-      }
+      // The user.id from auth IS the user_id in app_users and other tables
+      const userId = userData.user.id;
       
       // First delete strategy rules associated with this strategy
       const { error: rulesError } = await supabase
         .from("strategy_rules")
         .delete()
         .eq("strategy_id", strategyId)
-        .eq("user_id", appUser.user_id);
+        .eq("user_id", userId);
         
       if (rulesError) {
         console.error("Error deleting strategy rules:", rulesError);
@@ -115,7 +89,7 @@ export function useStrategies() {
         .from("strategies")
         .delete()
         .eq("strategy_id", strategyId)
-        .eq("user_id", appUser.user_id);
+        .eq("user_id", userId);
         
       if (strategyError) throw strategyError;
       
@@ -143,28 +117,15 @@ export function useStrategies() {
         throw new Error("User not authenticated");
       }
 
-      // Get the internal user ID from app_users table
-      const { data: appUser, error: appUserError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", userData.user.id)
-        .single();
-
-      if (appUserError) {
-        console.error("Error fetching internal user ID:", appUserError);
-        throw new Error("Could not get user information");
-      }
-
-      if (!appUser) {
-        throw new Error("User profile not found");
-      }
+      // The user.id from auth IS the user_id in app_users and other tables
+      const userId = userData.user.id;
       
       const { error: createError } = await supabase
         .from("strategies")
         .insert({
           strategy_name: strategyData.strategy_name,
           description: strategyData.description,
-          user_id: appUser.user_id
+          user_id: userId
         });
         
       if (createError) throw createError;

@@ -27,18 +27,21 @@ export function useTags() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Get user ID from auth context
+  const userId = user?.id;
+
   const fetchTags = async (): Promise<Tag[]> => {
-    if (!profile?.user_id) {
-      console.log('No profile user_id available for tags');
+    if (!userId) {
+      console.log('No user ID available for tags');
       return [];
     }
 
-    console.log('Fetching tags for profile ID:', profile.user_id);
+    console.log('Fetching tags for user ID:', userId);
 
     const { data, error } = await supabase
       .from("tags")
       .select("*")
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .order("tag_name", { ascending: true });
 
     if (error) {
@@ -51,11 +54,11 @@ export function useTags() {
   };
 
   const createTag = async (tag: TagFormValues): Promise<Tag> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from("tags")
-      .insert([{ ...tag, user_id: profile.user_id }])
+      .insert([{ ...tag, user_id: userId }])
       .select()
       .single();
 
@@ -64,13 +67,13 @@ export function useTags() {
   };
 
   const updateTag = async ({ tag_id, tagData }: { tag_id: string; tagData: TagFormValues }): Promise<Tag> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from("tags")
       .update(tagData)
       .eq("tag_id", tag_id)
-      .eq("user_id", profile.user_id)
+      .eq("user_id", userId)
       .select()
       .single();
 
@@ -79,28 +82,28 @@ export function useTags() {
   };
 
   const deleteTag = async (tag_id: string): Promise<void> => {
-    if (!profile?.user_id) throw new Error("User profile not loaded");
+    if (!userId) throw new Error("User not authenticated");
 
     const { error } = await supabase
       .from("tags")
       .delete()
       .eq("tag_id", tag_id)
-      .eq("user_id", profile.user_id);
+      .eq("user_id", userId);
 
     if (error) throw error;
   };
 
   const tagsQuery = useQuery({
-    queryKey: ["tags", profile?.user_id],
+    queryKey: ["tags", userId],
     queryFn: fetchTags,
-    enabled: !!profile?.user_id,
+    enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
   });
 
   const createTagMutation = useMutation({
     mutationFn: createTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["tags", userId] });
       toast({
         title: "Tag created successfully",
       });
@@ -118,7 +121,7 @@ export function useTags() {
   const updateTagMutation = useMutation({
     mutationFn: updateTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["tags", userId] });
       toast({
         title: "Tag updated successfully",
       });
@@ -136,7 +139,7 @@ export function useTags() {
   const deleteTagMutation = useMutation({
     mutationFn: deleteTag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags", profile?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["tags", userId] });
       toast({
         title: "Tag deleted successfully",
       });

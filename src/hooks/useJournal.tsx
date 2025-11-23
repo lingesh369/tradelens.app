@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { JournalEntry, JournalUpsertData } from "@/types/journal";
 import { useUserProfile } from "./useUserProfile";
+import { useAuth } from "@/context/AuthContext";
 import { ImageUploadService } from "@/services/imageUploadService";
 
 export interface JournalEntryLegacy {
@@ -30,9 +31,13 @@ export function useJournal() {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   const { profile } = useUserProfile();
+  const { user } = useAuth();
+
+  // Get user ID from auth context
+  const userId = user?.id;
 
   const fetchJournalEntries = useCallback(async () => {
-    if (!profile?.user_id) {
+    if (!userId) {
       setJournalEntries([]);
       setJournals([]);
       return;
@@ -45,7 +50,7 @@ export function useJournal() {
       const { data, error } = await supabase
         .from('journal')
         .select('*')
-        .eq('user_id', profile.user_id)
+        .eq('user_id', userId)
         .order('journal_date', { ascending: false });
 
       if (error) throw error;
@@ -86,7 +91,7 @@ export function useJournal() {
       });
 
       // Update cache
-      const cacheKey = `user-${profile.user_id}`;
+      const cacheKey = `user-${userId}`;
       journalCache.set(cacheKey, transformedData);
 
       const legacyData = transformedData.map(item => ({
@@ -124,7 +129,7 @@ export function useJournal() {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.user_id]);
+  }, [userId]);
 
   const getJournalByDate = useCallback((date: Date | string) => {
     const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
@@ -142,8 +147,8 @@ export function useJournal() {
 
   const upsertJournal = useCallback(async (data: any) => {
     try {
-      if (!profile?.user_id) {
-        throw new Error("User profile not loaded");
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
 
       // Process content to replace any base64 images with uploaded URLs
@@ -166,14 +171,14 @@ export function useJournal() {
           .from('journal')
           .update(updateData)
           .eq('journal_id', data.journal_id || data.entry_id || data.note_id)
-          .eq('user_id', profile.user_id);
+          .eq('user_id', userId);
 
         if (error) throw error;
         result = { success: true };
       } else {
         // Create new entry
         const insertData = {
-          user_id: profile.user_id,
+          user_id: userId,
           notes: processedContent,
           journal_date: data.journal_date || (typeof data.date === 'string' ? data.date : data.date?.toISOString().split('T')[0]) || new Date().toISOString().split('T')[0],
           net_pl: 0,
@@ -199,7 +204,7 @@ export function useJournal() {
       }
       
       // Clear cache and refresh data immediately
-      const cacheKey = `user-${profile.user_id}`;
+      const cacheKey = `user-${userId}`;
       journalCache.delete(cacheKey);
       
       // Refresh data immediately to show changes
@@ -211,23 +216,23 @@ export function useJournal() {
       console.error("Error in upsertJournal:", error);
       return { success: false, error };
     }
-  }, [profile?.user_id, fetchJournalEntries]);
+  }, [userId, fetchJournalEntries]);
 
   const deleteJournal = useCallback(async (entryId: string) => {
     try {
-      if (!profile?.user_id) {
-        throw new Error("User profile not loaded");
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
 
       const { error } = await supabase
         .from('journal')
         .delete()
         .eq('journal_id', entryId)
-        .eq('user_id', profile.user_id);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
-      const cacheKey = `user-${profile.user_id}`;
+      const cacheKey = `user-${userId}`;
       journalCache.delete(cacheKey);
       await fetchJournalEntries();
       
@@ -248,7 +253,7 @@ export function useJournal() {
       
       return { success: false, error };
     }
-  }, [profile?.user_id, fetchJournalEntries, toast]);
+  }, [userId, fetchJournalEntries, toast]);
 
   const addJournalEntry = useCallback(async (entry: {
     trade_symbol?: string;
@@ -257,15 +262,15 @@ export function useJournal() {
     violated_rules?: string[];
   }) => {
     try {
-      if (!profile?.user_id) {
-        throw new Error("User profile not loaded");
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
       
       // Process content to replace any base64 images with uploaded URLs
       const processedContent = await ImageUploadService.processContentForSaving(entry.entry_content, 'journal');
 
       const insertData = {
-        user_id: profile.user_id,
+        user_id: userId,
         notes: processedContent,
         journal_date: new Date().toISOString().split('T')[0],
         net_pl: 0,
@@ -288,7 +293,7 @@ export function useJournal() {
 
       if (error) throw error;
 
-      const cacheKey = `user-${profile.user_id}`;
+      const cacheKey = `user-${userId}`;
       journalCache.delete(cacheKey);
       await fetchJournalEntries();
       
@@ -309,7 +314,7 @@ export function useJournal() {
       
       return { success: false, error };
     }
-  }, [profile?.user_id, fetchJournalEntries, toast]);
+  }, [userId, fetchJournalEntries, toast]);
 
   const updateJournalEntry = useCallback(async (data: JournalUpsertData) => {
     return await upsertJournal(data);
@@ -317,8 +322,8 @@ export function useJournal() {
 
   const addTradeToJournal = useCallback(async (tradeId: string, aiSummary?: string) => {
     try {
-      if (!profile?.user_id) {
-        throw new Error("User profile not loaded");
+      if (!userId) {
+        throw new Error("User not authenticated");
       }
       
       const { data: tradeData, error: tradeError } = await supabase
@@ -336,7 +341,7 @@ export function useJournal() {
       const entryContent = `Trade on ${tradeData.instrument}: ${tradeData.action.toUpperCase()} ${tradeData.quantity} units at ${tradeData.entry_price}. ${tradeData.notes || ''}`;
       
       const insertData = {
-        user_id: profile.user_id,
+        user_id: userId,
         notes: entryContent,
         journal_date: new Date().toISOString().split('T')[0],
         net_pl: 0,
@@ -359,7 +364,7 @@ export function useJournal() {
 
       if (error) throw error;
 
-      const cacheKey = `user-${profile.user_id}`;
+      const cacheKey = `user-${userId}`;
       journalCache.delete(cacheKey);
       await fetchJournalEntries();
       
@@ -380,13 +385,13 @@ export function useJournal() {
       
       return { success: false, error };
     }
-  }, [profile?.user_id, fetchJournalEntries, toast]);
+  }, [userId, fetchJournalEntries, toast]);
 
   useEffect(() => {
-    if (profile?.user_id) {
+    if (userId) {
       fetchJournalEntries();
     }
-  }, [profile?.user_id, fetchJournalEntries]);
+  }, [userId, fetchJournalEntries]);
 
   return {
     journalEntries,

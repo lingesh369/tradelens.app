@@ -51,9 +51,11 @@ export function AddAccountDialog({ open, onOpenChange, onAccountAdded }: AddAcco
       }
       
       const userAccess = accessData[0];
-      const accountLimit = userAccess.accountsLimit || 0;
+      // Use snake_case from database (accountslimit) with fallback to camelCase
+      const accountLimit = userAccess.accountslimit ?? userAccess.accountsLimit ?? 0;
       
-      if (currentAccountsCount >= accountLimit) {
+      // -1 means unlimited
+      if (accountLimit !== -1 && currentAccountsCount >= accountLimit) {
         toast({
           title: "Limit Exceeded",
           description: `You have reached the maximum number of trading accounts (${accountLimit}) for your plan.`,

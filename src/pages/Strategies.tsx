@@ -141,7 +141,7 @@ const Strategies = () => {
           <p className="text-muted-foreground mb-6">Create your first strategy to start tracking your performance</p>
           <Button onClick={handleNewStrategyClick} className="gap-2" disabled={!canCreateStrategy}>
             {canCreateStrategy ? <Plus className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-            {canCreateStrategy ? "New Strategy" : `Limit Reached (${strategiesLimit})`}
+            {canCreateStrategy ? "New Strategy" : `Limit Reached (${strategiesLimit === -1 ? 'Unlimited' : strategiesLimit})`}
           </Button>
         </div>
       );
@@ -189,7 +189,7 @@ const Strategies = () => {
               <div>
                 <h1 className="text-2xl font-bold">Trading Strategies</h1>
                 <p className="text-muted-foreground mt-1">
-                  Manage and analyze your trading strategies ({currentStrategiesCount}/{strategiesLimit} used)
+                  Manage and analyze your trading strategies ({currentStrategiesCount}/{strategiesLimit === -1 ? 'Unlimited' : strategiesLimit} used)
                 </p>
               </div>
               
