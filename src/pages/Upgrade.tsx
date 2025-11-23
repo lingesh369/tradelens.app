@@ -10,7 +10,6 @@ import { useSubscription } from "@/hooks/useSubscription";
 
 export default function Upgrade() {
   const { planName, isTrialExpired } = useSubscriptionContext();
-  const { userSubscription } = useSubscription();
   const navigate = useNavigate();
   
   // Pro users don't need to be on this page

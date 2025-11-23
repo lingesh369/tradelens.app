@@ -24,6 +24,8 @@ import Journal from "./pages/Journal";
 import Notes from "./pages/Notes";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import EmailConfirmation from "./pages/EmailConfirmation";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import Strategies from "./pages/Strategies";
@@ -134,6 +136,7 @@ function AppRoutes() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/sign-in" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
+        <Route path="/auth/confirm-email" element={<EmailConfirmation />} />
         <Route path="/pricing" element={<ExternalRedirect to="https://peakify.store/tradelens-pricing/" />} />
         <Route path="/direct-payment" element={<DirectPayment />} />
         <Route path="/payment/confirmation" element={<PaymentConfirmation />} />
@@ -142,6 +145,9 @@ function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           {/* Root route - Dashboard */}
           <Route path="/" element={<Dashboard />} />
+          
+          {/* Onboarding - Accessible to authenticated users */}
+          <Route path="/onboarding" element={<Onboarding />} />
           
           {/* Shared Trade Route - Requires authentication but accessible to all */}
           <Route path="/shared/trades/:tradeId" element={<SharedTradePage />} />

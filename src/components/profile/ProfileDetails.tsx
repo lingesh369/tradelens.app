@@ -15,14 +15,12 @@ import {
 } from '@/components/ui/form';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Edit, X } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2, Save, Edit, X, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { UsernameInput } from '@/components/ui/username-input';
 import { ProfilePictureUpload } from '@/components/ui/profile-picture-upload';
 import { Switch } from '@/components/ui/switch';
-import { useCreateTraderProfile } from '@/hooks/useCommunity';
-import { ExternalLink } from 'lucide-react';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -33,197 +31,51 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-interface UserProfile {
-  id: string;
-  auth_id: string;
-  email: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  user_role: string;
-  user_status: string;
-  created_at?: string;
-  updated_at?: string;
-  profile_picture_url?: string;
-}
-
 const ProfileDetails: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isUsernameValid, setIsUsernameValid] = useState(true);
-  const [isPublic, setIsPublic] = useState(false);
-  const [traderProfile, setTraderProfile] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const createTraderProfile = useCreateTraderProfile();
-
+  const { profile, isLoading, updateProfile, isUpdating } = useUserProfile();
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      username: "",
-      email: "",
+      firstName: profile?.first_name || "",
+      lastName: profile?.last_name || "",
+      username: profile?.username || "",
+      email: profile?.email || user?.email || "",
     },
   });
 
-  const fetchProfile = async () => {
-    if (!user) {
-      console.log('No authenticated user found');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      console.log('Fetching profile for user:', user.id);
-      
-      // First try with the security definer function approach
-      const { data: userData, error: userError } = await supabase.rpc('get_user_id_from_auth', {
-        auth_user_id: user.id
-      });
-
-      if (userError) {
-        console.error('Error getting user ID:', userError);
-        // Fallback to direct query if function fails
-        const { data: directData, error: directError } = await supabase
-          .from('app_users')
-          .select('*')
-          .eq('auth_id', user.id)
-          .single();
-
-        if (directError) {
-          console.error('Direct query also failed:', directError);
-          throw directError;
-        }
-
-        console.log('Fallback direct query succeeded:', directData);
-        setProfile(directData);
-        
-        // Update form with fetched data
-        form.reset({
-          firstName: directData.first_name || "",
-          lastName: directData.last_name || "",
-          username: directData.username || "",
-          email: directData.email || user.email || "",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // If we got a user ID from the function, fetch the full profile
-      if (userData) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('app_users')
-          .select('*')
-          .eq('user_id', userData)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile with user ID:', profileError);
-          throw profileError;
-        }
-
-      console.log('Profile data fetched successfully:', profileData);
-      setProfile(profileData);
-      
-      // Fetch trader profile for privacy settings
-      // Use profileData.user_id instead of profileData.id for trader_profiles
-      const { data: traderData } = await supabase
-        .from('trader_profiles')
-        .select('*')
-        .eq('user_id', profileData.user_id)
-        .maybeSingle();
-      
-      if (traderData) {
-        setTraderProfile(traderData);
-        setIsPublic(traderData.is_public);
-      }
-      
-      // Update form with fetched data
+  // Update form when profile loads
+  useEffect(() => {
+    if (profile) {
       form.reset({
-        firstName: profileData.first_name || "",
-        lastName: profileData.last_name || "",
-        username: profileData.username || "",
-        email: profileData.email || user.email || "",
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        username: profile.username || "",
+        email: profile.email || user?.email || "",
       });
-      }
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-      
-      console.log('No profile found - database trigger should have created it');
-      toast({
-        title: "Profile Not Found",
-        description: "Your profile is being created. Please refresh the page in a moment.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [profile, user, form]);
 
   const onSubmit = async (values: ProfileFormValues) => {
-    if (!user || !profile) {
+    if (!isUsernameValid) {
       toast({
-        title: "Error",
-        description: "User not found",
+        title: "Invalid Username",
+        description: "Please choose a valid and available username.",
         variant: "destructive",
       });
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      
-      console.log('Updating profile with values:', values);
+    updateProfile({
+      first_name: values.firstName,
+      last_name: values.lastName,
+      username: values.username,
+    });
 
-      // Check if username is valid before submitting
-      if (!isUsernameValid) {
-        toast({
-          title: "Invalid Username",
-          description: "Please choose a valid and available username.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('app_users')
-        .update({
-          first_name: values.firstName,
-          last_name: values.lastName,
-          username: values.username,
-          updated_at: new Date().toISOString()
-        } as any)
-        .eq('auth_id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating profile:', error);
-        throw error;
-      }
-
-      console.log('Profile updated successfully:', data);
-      setProfile(data);
-      setIsEditing(false);
-
-      toast({
-        title: "Success",
-        description: "Your profile has been updated successfully",
-      });
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update your profile. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setIsEditing(false);
   };
 
   const toggleEditing = () => {
@@ -268,74 +120,24 @@ const ProfileDetails: React.FC = () => {
   };
 
   const handleProfilePictureUpload = (url: string) => {
-    if (profile) {
-      setProfile({ ...profile, profile_picture_url: url });
-    }
+    updateProfile({ avatar_url: url });
   };
 
   const handlePrivacyToggle = async (checked: boolean) => {
     if (!profile) return;
     
-    try {
-      setIsPublic(checked);
-      
-      if (checked && !traderProfile) {
-        // Create trader profile if it doesn't exist
-        const profileData = {
-          user_id: profile.user_id,
-          is_public: true,
-          bio: '',
-          stats_visibility: {
-            "net_pnl": false,
-            "win_rate": true,
-            "daily_pnl": true,
-            "avg_win_loss": true,
-            "calendar_view": true,
-            "profit_factor": true,
-            "recent_trades": true,
-            "account_balance": false
-          },
-          social_links: {},
-          about_content: []
-        };
-        
-        await createTraderProfile.mutateAsync(profileData);
-        setTraderProfile(profileData);
-      } else if (traderProfile) {
-        // Update existing trader profile
-        // Use profile.user_id to match the RLS policy expectation
-        const { error } = await supabase
-          .from('trader_profiles')
-          .update({ is_public: checked })
-          .eq('user_id', profile.user_id);
-          
-        if (error) throw error;
-        
-        setTraderProfile({ ...traderProfile, is_public: checked });
-      }
-      
-      toast({
-        title: "Privacy Updated",
-        description: checked 
-          ? "Your profile is now public and visible in the community" 
-          : "Your profile is now private",
-      });
-    } catch (error) {
-      console.error('Error updating privacy:', error);
-      setIsPublic(!checked); // Revert on error
-      toast({
-        title: "Error",
-        description: "Failed to update privacy settings",
-        variant: "destructive",
-      });
-    }
+    updateProfile({
+      trader_profile: {
+        is_public: checked,
+        bio: profile.trader_profile?.bio || '',
+        stats_visibility: profile.trader_profile?.stats_visibility || {
+          show_pnl: false,
+          show_win_rate: true,
+          show_trades: true,
+        },
+      },
+    });
   };
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
 
   if (isLoading) {
     return (
@@ -351,9 +153,7 @@ const ProfileDetails: React.FC = () => {
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">No profile data found</p>
-          <Button onClick={fetchProfile} variant="outline">
-            Try Again
-          </Button>
+          <p className="text-sm text-muted-foreground">Please refresh the page</p>
         </div>
       </div>
     );
@@ -364,7 +164,7 @@ const ProfileDetails: React.FC = () => {
       {/* Profile Header */}
       <div className="flex gap-6 items-start">
         <ProfilePictureUpload
-          currentImageUrl={profile.profile_picture_url}
+          currentImageUrl={profile.avatar_url}
           onImageUploaded={handleProfilePictureUpload}
           userInitials={getInitials()}
         />
@@ -380,13 +180,13 @@ const ProfileDetails: React.FC = () => {
                 {profile.user_role}
               </div>
             )}
-            {profile.user_status && (
+            {profile.is_active !== undefined && (
               <div className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                profile.user_status.toLowerCase() === 'active' 
+                profile.is_active
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
               }`}>
-                {profile.user_status}
+                {profile.is_active ? 'Active' : 'Inactive'}
               </div>
             )}
           </div>
@@ -413,13 +213,13 @@ const ProfileDetails: React.FC = () => {
               <ExternalLink className="h-4 w-4" />
             </a>
             <Switch
-              checked={isPublic}
+              checked={profile.trader_profile?.is_public || false}
               onCheckedChange={handlePrivacyToggle}
-              disabled={createTraderProfile.isPending}
+              disabled={isUpdating}
             />
           </div>
         </div>
-        {isPublic && (
+        {profile.trader_profile?.is_public && (
           <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
               Your profile is public. You can manage what information is visible in your
@@ -439,7 +239,7 @@ const ProfileDetails: React.FC = () => {
               variant="ghost"
               size="icon"
               onClick={toggleEditing}
-              disabled={isSubmitting}
+              disabled={isUpdating}
             >
               {isEditing ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
             </Button>

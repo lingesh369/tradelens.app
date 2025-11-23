@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { DummyDataBanner } from "@/components/onboarding/DummyDataBanner";
-import { DashboardPlanBanners } from "@/components/dashboard/DashboardPlanBanners";
+import { TrialBanner } from "@/components/TrialBanner";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { DashboardBottomSection } from "@/components/dashboard/DashboardBottomSection";
@@ -101,6 +101,9 @@ const Dashboard = () => {
     >
       <div className="p-4 sm:p-6">
         <div className="space-y-4 md:space-y-6">
+          {/* Trial Banner - Shows days remaining in trial */}
+          <TrialBanner />
+          
           {/* Dummy Data Banner - Only show if user has no real trades */}
           {!hasRealTrades && (
             <DummyDataBanner 
@@ -108,12 +111,6 @@ const Dashboard = () => {
               className="mb-4 md:mb-6"
             />
           )}
-
-          {/* Plan Banners */}
-          <DashboardPlanBanners 
-            planInfo={planInfo}
-            onUpgrade={handleUpgrade}
-          />
           
           {/* Stats Cards */}
           <DashboardStats stats={stats} />

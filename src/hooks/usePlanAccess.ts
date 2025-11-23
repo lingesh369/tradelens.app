@@ -57,23 +57,36 @@ export const usePlanAccess = () => {
         const accessData = Array.isArray(data) ? (data.length > 0 ? data[0] : null) : data;
         
         if (accessData) {
-          const planName = accessData.planName || 'Unknown';
+          // Use snake_case column names from PostgreSQL
+          const planName = accessData.plan_name || 'Unknown';
           const isPro = planName.toLowerCase().includes('pro');
           
-          // Ensure accessBlocked is properly handled
-          const accessBlocked = accessData.accessBlocked !== undefined 
-            ? Boolean(accessData.accessBlocked) 
-            : !Boolean(accessData.isActive);
+          // Use snake_case column names from PostgreSQL
+          const isActive = accessData.isactive ?? false;
+          const accessBlocked = accessData.accessblocked ?? false;
+          const notesAccess = accessData.notesaccess ?? false;
+          const profileAccess = accessData.profileaccess ?? false;
+          const aiAccess = accessData.aiaccess ?? false;
+          const accountsLimit = accessData.accountslimit ?? 0;
+          const strategiesLimit = accessData.strategieslimit ?? 0;
+          
+          console.log('Plan Access Data:', {
+            planName,
+            isActive,
+            accessBlocked,
+            notesAccess,
+            profileAccess
+          });
           
           return {
-            notes: Boolean(accessData.notes),
-            accountsLimit: isPro ? -1 : (accessData.accountsLimit || 0), // -1 means unlimited
-            strategiesLimit: isPro ? -1 : (accessData.strategiesLimit || 0), // -1 means unlimited
-            gennie: Boolean(accessData.gennie || isPro),
-            profile: Boolean(accessData.profile),
+            notes: Boolean(notesAccess),
+            accountsLimit: isPro ? -1 : accountsLimit, // -1 means unlimited
+            strategiesLimit: isPro ? -1 : strategiesLimit, // -1 means unlimited
+            gennie: Boolean(aiAccess || isPro),
+            profile: Boolean(profileAccess),
             accessBlocked: accessBlocked,
             planName: planName,
-            isActive: Boolean(accessData.isActive)
+            isActive: isActive
           };
         }
       }

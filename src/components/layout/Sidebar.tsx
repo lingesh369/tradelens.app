@@ -170,7 +170,7 @@ export const Sidebar = ({
           {/* Logo */}
           <div className={cn("px-4 mb-4", isMobile ? "py-1" : "py-2")}>
             <a href="https://tradelens.app/" target="_self" className="flex items-center gap-3 font-bold text-foreground hover:text-primary">
-              <img src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/sign/tradelens/output-onlinepngtools%20(4).png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2Y5MTEyYTUxLWYxMjctNDg0Yy05NzQxLTk4NTg1ZmMzZTI3NSJ9.eyJ1cmwiOiJ0cmFkZWxlbnMvb3V0cHV0LW9ubGluZXBuZ3Rvb2xzICg0KS5wbmciLCJpYXQiOjE3NDg4MDE1MTMsImV4cCI6MTc4MDMzNzUxM30.kJSqIHZBPRWcO3FpghNr7g6ZN90yjBQwrUOBaNozy_Q`} alt="TradeLens Logo" className="h-10 w-10" />
+              <img src="/tradelens_logo.webp" alt="TradeLens Logo" className="h-10 w-10" />
               <span className="text-2xl font-semibold mx-px">TradeLens</span>
             </a>
           </div>

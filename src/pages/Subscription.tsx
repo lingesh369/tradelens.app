@@ -38,7 +38,7 @@ export default function Subscription() {
   };
 
   // Filter out Free Trial plans for display
-  const availablePlans = plans.filter(plan => plan.name !== 'Free Trial');
+  const availablePlans = (plans || []).filter(plan => plan.name !== 'free' && plan.name !== 'Free Trial');
 
   if (isLoadingPlans) {
     return (

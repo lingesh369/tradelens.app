@@ -162,12 +162,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [lastOperation, handleAuthError]);
 
-  const createMissingUserRecords = async (authUser: User): Promise<void> => {
-    console.log("Checking if user records exist for:", authUser.email);
+  const waitForProfileCreation = async (authUser: User): Promise<void> => {
+    console.log("Waiting for profile creation for:", authUser.email);
     
     try {
       // Wait for database trigger to complete (with progressive delays)
-      const delays = [1000, 2000, 3000]; // 1s, 2s, 3s
+      const delays = [1000, 2000, 3000, 4000]; // 1s, 2s, 3s, 4s
       
       for (let attempt = 0; attempt < delays.length; attempt++) {
         await new Promise(resolve => setTimeout(resolve, delays[attempt]));
@@ -175,26 +175,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check if user record was created by trigger
         const { data: existingUser, error: checkError } = await supabase
           .from('app_users')
-          .select('user_id, auth_id')
-          .eq('auth_id', authUser.id)
+          .select('id, email, profile_completed')
+          .eq('id', authUser.id)
           .single();
           
         if (!checkError && existingUser) {
-          console.log(`User record found after ${delays[attempt]}ms for:`, authUser.email);
+          console.log(`User profile found after ${delays.slice(0, attempt + 1).reduce((a, b) => a + b, 0)}ms for:`, authUser.email);
           return; // User record exists, trigger worked
         }
         
-        console.log(`Attempt ${attempt + 1}: User record not found, waiting...`);
+        console.log(`Attempt ${attempt + 1}: User profile not found, waiting...`);
       }
       
       // If we get here, the trigger didn't create the user record
-      console.warn("Database trigger failed to create user records, manual creation not implemented in frontend");
-      console.warn("This should be handled by the enhanced database trigger function");
+      console.warn("Database trigger failed to create user profile in time");
       
       throw new Error("User account setup is taking longer than expected. Please try refreshing the page or contact support if the issue persists.");
       
     } catch (error) {
-      console.error("Error in createMissingUserRecords:", error);
+      console.error("Error in waitForProfileCreation:", error);
       throw error;
     }
   };
@@ -207,21 +206,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await withRetry(async () => {
         const { data, error } = await supabase
           .from('app_users')
-          .select('user_role, profile_data')
-          .eq('auth_id', authUser.id)
+          .select('user_role, profile_completed, subscription_status, trial_end_date')
+          .eq('id', authUser.id)
           .single();
           
         if (error) {
-          // If user not found, try to wait for trigger completion
+          // If user not found, wait for trigger completion
           if (error.code === 'PGRST116') { // No rows returned
             console.log("User profile not found, waiting for database trigger...");
-            await createMissingUserRecords(authUser);
+            await waitForProfileCreation(authUser);
             
             // Retry after trigger completion
             const { data: retryData, error: retryError } = await supabase
               .from('app_users')
-              .select('user_role, profile_data')
-              .eq('auth_id', authUser.id)
+              .select('user_role, profile_completed, subscription_status, trial_end_date')
+              .eq('id', authUser.id)
               .single();
               
             if (retryError) {
@@ -244,35 +243,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsManager(role === 'manager');
         setUserRole(userData.user_role || 'User');
         
-        // Get subscription info with retry logic
-        try {
-          const accessData = await withRetry(async () => {
-            const { data, error } = await supabase.rpc('get_user_access_matrix', {
-              auth_user_id: authUser.id
-            });
-            
-            if (error) throw error;
-            return data;
-          }, 'fetch access matrix');
-          
-          if (accessData && typeof accessData === 'object') {
-            const planName = (accessData as any).planName || 'Free Trial';
-            setSubscriptionPlan(planName);
-            setTrialActive(planName === 'Free Trial');
-            setDaysLeftInTrial(planName === 'Free Trial' ? 7 : 0);
-          } else {
-            // Fallback to default subscription
-            setSubscriptionPlan('Free Trial');
-            setTrialActive(true);
-            setDaysLeftInTrial(7);
-          }
-        } catch (accessError) {
-          console.error("Error fetching access info:", accessError);
-          // Fallback to default subscription
-          setSubscriptionPlan('Free Trial');
-          setTrialActive(true);
-          setDaysLeftInTrial(7);
+        // Get subscription info from user data
+        const subStatus = userData.subscription_status || 'trialing';
+        const isTrialing = subStatus === 'trialing';
+        
+        // Calculate days left in trial
+        let daysLeft = 0;
+        if (isTrialing && userData.trial_end_date) {
+          const trialEnd = new Date(userData.trial_end_date);
+          const now = new Date();
+          daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          daysLeft = Math.max(0, daysLeft);
         }
+        
+        // Get plan name from subscription using new schema
+        try {
+          const { data: subData } = await supabase
+            .from('user_subscriptions')
+            .select(`
+              status,
+              current_period_end,
+              subscription_plans!inner(
+                name,
+                display_name,
+                features
+              )
+            `)
+            .eq('user_id', authUser.id)
+            .in('status', ['active', 'trialing'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (subData?.subscription_plans) {
+            const plan = subData.subscription_plans as any;
+            setSubscriptionPlan(plan.display_name || plan.name || 'Free Trial');
+          } else {
+            setSubscriptionPlan(isTrialing ? 'Free Trial' : 'No Active Plan');
+          }
+        } catch (error) {
+          console.error("Error fetching subscription plan:", error);
+          setSubscriptionPlan(isTrialing ? 'Free Trial' : 'No Active Plan');
+        }
+        
+        setTrialActive(isTrialing);
+        setDaysLeftInTrial(daysLeft);
       }
       
       setIsRoleLoading(false);

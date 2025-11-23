@@ -67,21 +67,27 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Handle both array response (TABLE) and direct object response (JSONB)
       const userData = Array.isArray(accessData) ? (accessData.length > 0 ? accessData[0] : null) : accessData;
       
+      console.log('Subscription data received:', userData);
+      
       if (userData) {
-        const planName = userData.planName || 'Free Trial';
+        const planName = userData.plan_name || 'Free Trial';
         setPlanName(planName);
         
         // Check if subscription is active
-        const isActive = Boolean(userData.isActive);
+        const isActive = Boolean(userData.isactive ?? false);
         setIsExpired(!isActive);
         
+        console.log('Plan:', planName, 'Active:', isActive);
+        
         // Calculate days left if we have an end date
-        if (userData.endDate) {
-          const endDate = new Date(userData.endDate);
+        const endDate = userData.enddate || userData.endDate || userData.trialenddate || userData.trialEndDate;
+        if (endDate) {
+          const endDateTime = new Date(endDate);
           const now = new Date();
-          const daysPassed = Math.floor((now.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
-          const daysLeftInSub = Math.max(0, -daysPassed);
+          const diffTime = endDateTime.getTime() - now.getTime();
+          const daysLeftInSub = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
           setDaysLeft(daysLeftInSub);
+          console.log('Days left:', daysLeftInSub);
         } else {
           // If no end_date is set, use default values
           setDaysLeft(planName === 'Free Trial' ? 7 : 30);
@@ -123,20 +129,23 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const accessData = Array.isArray(data) ? (data.length > 0 ? data[0] : null) : data;
       
       if (accessData) {
-        // First check if subscription is active and not blocked
-        if (!accessData.isActive || accessData.accessBlocked) {
+        // Use snake_case column names from PostgreSQL
+        const isActive = accessData.isactive ?? false;
+        const accessBlocked = accessData.accessblocked ?? false;
+        
+        if (!isActive || accessBlocked) {
           return false;
         }
         
         switch (featureKey) {
           case 'notes':
-            return accessData.notesAccess || false;
+            return accessData.notesaccess ?? accessData.notesAccess ?? false;
           case 'profile':
-            return accessData.profileAccess || false;
+            return accessData.profileaccess ?? accessData.profileAccess ?? false;
           case 'analytics_overview':
-            return accessData.analyticsAccess || false;
+            return accessData.analyticsaccess ?? accessData.analyticsAccess ?? false;
           case 'analytics_other':
-            return accessData.analyticsAccess || false;
+            return accessData.analyticsaccess ?? accessData.analyticsAccess ?? false;
           default:
             return false;
         }
@@ -175,8 +184,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       }
       
-      // Check if subscription is active
-      if (!userAccess.isActive || userAccess.accessBlocked) {
+      // Check if subscription is active (handle lowercase column names)
+      const isActive = userAccess.isactive ?? userAccess.isActive;
+      const accessBlocked = userAccess.accessblocked ?? userAccess.accessBlocked;
+      
+      if (!isActive || accessBlocked) {
         // Return Free Trial defaults if subscription is not active
         switch (resourceType) {
           case 'accounts':
@@ -189,16 +201,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
       
       // Check if this is a Pro plan (unlimited resources)
-      const isPro = (userAccess.planName || '').toLowerCase().includes('pro');
+      const planName = userAccess.plan_name || '';
+      const isPro = planName.toLowerCase().includes('pro');
       if (isPro) {
         return -1; // -1 means unlimited
       }
       
       switch (resourceType) {
         case 'accounts':
-          return userAccess.accountsLimit || 1;
+          return userAccess.accountslimit ?? userAccess.accountsLimit ?? 1;
         case 'strategies':
-          return userAccess.strategiesLimit || 3;
+          return userAccess.strategieslimit ?? userAccess.strategiesLimit ?? 3;
         default:
           return 0;
       }

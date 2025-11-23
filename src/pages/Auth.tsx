@@ -196,7 +196,7 @@ const Auth = () => {
     try {
       console.log("Starting signup process...");
       
-      // Use Supabase's built-in signup with metadata
+      // Simple signup - let database trigger handle profile creation
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -205,7 +205,7 @@ const Auth = () => {
             first_name: values.firstName || '',
             last_name: values.lastName || '',
             username: values.username || '',
-            signup_source: 'direct'
+            signup_source: 'web' // Track that this came from web app
           }
         }
       });
@@ -234,79 +234,33 @@ const Auth = () => {
       }
 
       if (data.user) {
-        console.log("User created successfully");
-        
-        // Create app_users profile after successful auth signup
-        try {
-          const { error: profileError } = await supabase.rpc('create_app_user_profile', {
-            user_id: data.user.id,
-            user_email: values.email,
-            user_first_name: values.firstName || '',
-            user_last_name: values.lastName || '',
-            user_username: values.username || '',
-            user_signup_source: 'direct'
-          });
-
-          if (profileError) {
-            console.error("Failed to create user profile:", profileError);
-            // Don't fail the signup, just log the error
-            toast({
-              title: "Profile Creation Warning",
-              description: "Account created but profile setup incomplete. Please contact support if you experience issues.",
-              variant: "destructive",
-            });
-          } else {
-            console.log("User profile created successfully");
-            
-            // Create additional profile records (trader_profiles, subscriptions, settings)
-            try {
-              const { error: additionalProfileError } = await supabase.rpc('create_additional_user_profiles', {
-                user_id: data.user.id,
-                user_email: values.email
-              });
-
-              if (additionalProfileError) {
-                console.error("Failed to create additional user profiles:", additionalProfileError);
-                // Don't fail the signup, just log the error
-                toast({
-                  title: "Additional Profile Setup Warning",
-                  description: "Basic profile created but some features may be limited. Please contact support if you experience issues.",
-                  variant: "destructive",
-                });
-              } else {
-                console.log("Additional user profiles created successfully");
-              }
-            } catch (additionalProfileError) {
-              console.error("Unexpected error creating additional profiles:", additionalProfileError);
-            }
-          }
-        } catch (profileError) {
-          console.error("Unexpected error creating profile:", profileError);
-        }
+        console.log("User created successfully, database trigger will create profile");
         
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
-          // User is immediately confirmed (email confirmations disabled)
+          // User is immediately confirmed (OAuth or confirmations disabled)
           toast({
             title: "Welcome to TradeLens!",
-            description: "Your account has been created successfully. You are now signed in.",
+            description: "Your account has been created successfully. Setting up your profile...",
           });
           
-          // User should be automatically signed in, redirect to dashboard
-          navigate("/dashboard");
+          // Wait a moment for trigger to complete, then redirect
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 2000);
         } else {
           // Email confirmation is required
           toast({
-            title: "Account created successfully!",
-            description: "Please check your email to confirm your account before signing in.",
+            title: "Check your email",
+            description: "We've sent you a confirmation link. Please check your email to activate your account.",
           });
           
-          // Clear the form and switch to login
-          registerForm.reset();
-          setView("login");
+          // Store email for resend functionality
+          localStorage.setItem("pending_confirmation_email", values.email);
           
-          // Pre-fill the login form with the email
-          loginForm.setValue("email", values.email);
+          // Clear the form and redirect to confirmation page
+          registerForm.reset();
+          navigate("/auth/confirm-email");
         }
       }
       
