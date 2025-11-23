@@ -1,0 +1,850 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff, Mail, Lock, LogIn, UserPlus, TrendingUp, Loader2, ArrowLeft, KeyRound, AlertCircle } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { FcGoogle } from "react-icons/fc";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { UsernameInput } from "@/components/ui/username-input";
+
+// Form schemas
+const loginSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+});
+
+const registerSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  username: z.string()
+    .min(3, { message: "Username must be at least 3 characters" })
+    .max(20, { message: "Username must be at most 20 characters" })
+    .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores" }),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+});
+
+const resetPasswordSchema = z.object({
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [view, setView] = useState<"login" | "register" | "forgot-password" | "reset-password">("login");
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { signIn, signInWithGoogle, resetPassword, updatePassword, user } = useAuth();
+
+  // Initialize forms
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const registerForm = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      username: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const resetPasswordForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Determine view based on route
+  useEffect(() => {
+    if (location.pathname === "/auth/sign-in") {
+      setView("login");
+    } else if (location.pathname === "/auth/register") {
+      setView("register");
+    }
+  }, [location.pathname]);
+
+  // Check for URL parameters
+  useEffect(() => {
+    // Check for password reset mode
+    const reset = searchParams.get("reset");
+    const type = searchParams.get("type");
+    
+    if (reset === "true") {
+      setView("reset-password");
+    } else if (type === "recovery") {
+      setView("reset-password");
+    }
+    
+    // Check for error message
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
+    
+    if (error && errorDescription) {
+      const errorMsg = decodeURIComponent(errorDescription);
+      setAuthError(errorMsg);
+      toast({
+        title: "Authentication Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    }
+  }, [searchParams, toast]);
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  if (user) {
+    return null;
+  }
+
+  // Handle tab changes with navigation
+  const handleTabChange = (value: string) => {
+    if (value === "login") {
+      navigate("/auth/sign-in");
+    } else if (value === "register") {
+      navigate("/auth/register");
+    }
+    setView(value as "login" | "register");
+  };
+
+  const handleLogin = async (values: LoginFormValues) => {
+    setLoading(true);
+    setAuthError(null);
+    
+    try {
+      const { error } = await signIn(values.email, values.password);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
+      });
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Auth error:", error);
+      setAuthError(error.message || "An unexpected error occurred");
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (values: RegisterFormValues) => {
+    setLoading(true);
+    setAuthError(null);
+    
+    try {
+      console.log("Starting signup process...");
+      
+      // Use Supabase's built-in signup with metadata
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            first_name: values.firstName || '',
+            last_name: values.lastName || '',
+            username: values.username || '',
+            signup_source: 'direct'
+          }
+        }
+      });
+      
+      if (error) {
+        console.error("Signup failed:", error);
+        
+        if (error.message.includes('already registered')) {
+          setAuthError("An account with this email already exists. Please sign in instead.");
+          toast({
+            title: "Account already exists",
+            description: "Please sign in with your existing account.",
+            variant: "destructive",
+          });
+          setView("login");
+          return;
+        } else {
+          setAuthError(error.message);
+          toast({
+            title: "Registration Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      if (data.user) {
+        console.log("User created successfully");
+        
+        // Create app_users profile after successful auth signup
+        try {
+          const { error: profileError } = await supabase.rpc('create_app_user_profile', {
+            user_id: data.user.id,
+            user_email: values.email,
+            user_first_name: values.firstName || '',
+            user_last_name: values.lastName || '',
+            user_username: values.username || '',
+            user_signup_source: 'direct'
+          });
+
+          if (profileError) {
+            console.error("Failed to create user profile:", profileError);
+            // Don't fail the signup, just log the error
+            toast({
+              title: "Profile Creation Warning",
+              description: "Account created but profile setup incomplete. Please contact support if you experience issues.",
+              variant: "destructive",
+            });
+          } else {
+            console.log("User profile created successfully");
+            
+            // Create additional profile records (trader_profiles, subscriptions, settings)
+            try {
+              const { error: additionalProfileError } = await supabase.rpc('create_additional_user_profiles', {
+                user_id: data.user.id,
+                user_email: values.email
+              });
+
+              if (additionalProfileError) {
+                console.error("Failed to create additional user profiles:", additionalProfileError);
+                // Don't fail the signup, just log the error
+                toast({
+                  title: "Additional Profile Setup Warning",
+                  description: "Basic profile created but some features may be limited. Please contact support if you experience issues.",
+                  variant: "destructive",
+                });
+              } else {
+                console.log("Additional user profiles created successfully");
+              }
+            } catch (additionalProfileError) {
+              console.error("Unexpected error creating additional profiles:", additionalProfileError);
+            }
+          }
+        } catch (profileError) {
+          console.error("Unexpected error creating profile:", profileError);
+        }
+        
+        // Check if email confirmation is required
+        if (data.user.email_confirmed_at) {
+          // User is immediately confirmed (email confirmations disabled)
+          toast({
+            title: "Welcome to TradeLens!",
+            description: "Your account has been created successfully. You are now signed in.",
+          });
+          
+          // User should be automatically signed in, redirect to dashboard
+          navigate("/dashboard");
+        } else {
+          // Email confirmation is required
+          toast({
+            title: "Account created successfully!",
+            description: "Please check your email to confirm your account before signing in.",
+          });
+          
+          // Clear the form and switch to login
+          registerForm.reset();
+          setView("login");
+          
+          // Pre-fill the login form with the email
+          loginForm.setValue("email", values.email);
+        }
+      }
+      
+    } catch (error: any) {
+      console.error("Unexpected signup error:", error);
+      setAuthError("An unexpected error occurred during signup. Please try again.");
+      toast({
+        title: "Registration Error", 
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (values: ForgotPasswordFormValues) => {
+    setLoading(true);
+    setAuthError(null);
+    
+    try {
+      const { error } = await resetPassword(values.email);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for a link to reset your password.",
+      });
+      forgotPasswordForm.reset();
+      setView("login");
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      setAuthError(error.message || "Failed to send reset password email");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset password email",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (values: ResetPasswordFormValues) => {
+    setLoading(true);
+    setAuthError(null);
+    
+    try {
+      const { error } = await updatePassword(values.password);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been successfully updated. Please sign in with your new password.",
+      });
+      resetPasswordForm.reset();
+      setView("login");
+    } catch (error: any) {
+      console.error("Update password error:", error);
+      setAuthError(error.message || "Failed to update password");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      setAuthError(null);
+      
+      // Use direct Supabase client to handle redirects more reliably
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/dashboard'
+        }
+      });
+      
+      if (error) throw error;
+      
+      // The redirect will happen automatically
+    } catch (error: any) {
+      console.error("Google auth error:", error);
+      setAuthError(error.message || "An unexpected error occurred with Google sign in");
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred with Google sign in",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-background/80 px-4">
+      {/* Header/Navigation */}
+      <header className="py-4 container mx-auto">
+        <a 
+          href="https://tradelens.app/" 
+          className="flex items-center gap-3 w-fit pl-0 md:pl-4"
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          <TrendingUp className="h-8 w-8 text-primary" />
+          <span className="text-2xl font-bold">TradeLens</span>
+        </a>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center py-12">
+        <Card className="w-full max-w-md shadow-lg border-border/50">
+          {authError && (
+            <Alert variant="destructive" className="rounded-b-none">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{authError}</AlertDescription>
+            </Alert>
+          )}
+          
+          {view === "forgot-password" ? (
+            <>
+              <CardHeader className="space-y-1">
+                <div className="flex items-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mr-2 px-0" 
+                    onClick={() => navigate("/auth/sign-in")}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Back
+                  </Button>
+                  <CardTitle className="text-2xl font-bold tracking-tight">
+                    Reset your password
+                  </CardTitle>
+                </div>
+                <CardDescription>
+                  Enter your email address and we'll send you a link to reset your password
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...forgotPasswordForm}>
+                  <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-4">
+                    <FormField
+                      control={forgotPasswordForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <FormControl>
+                              <Input
+                                placeholder="Email"
+                                className="pl-10"
+                                {...field}
+                              />
+                            </FormControl>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending...
+                        </span>
+                      ) : (
+                        "Send reset link"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </>
+          ) : view === "reset-password" ? (
+            <>
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold tracking-tight">
+                  Set new password
+                </CardTitle>
+                <CardDescription>
+                  Create a new password for your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...resetPasswordForm}>
+                  <form onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)} className="space-y-4">
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <FormControl>
+                              <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="New password"
+                                className="pl-10 pr-10"
+                                {...field}
+                              />
+                            </FormControl>
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-3 text-muted-foreground"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <FormControl>
+                              <Input
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="Confirm password"
+                                className="pl-10 pr-10"
+                                {...field}
+                              />
+                            </FormControl>
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3 top-3 text-muted-foreground"
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Updating password...
+                        </span>
+                      ) : (
+                        "Update password"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </>
+          ) : (
+            <>
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold tracking-tight text-center">
+                  Welcome to TradeLens
+                </CardTitle>
+                <CardDescription className="text-center">
+                  {view === "login" ? "Sign in to your account" : "Create your account"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Tabs defaultValue="login" value={view} onValueChange={handleTabChange}>
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="login">Sign In</TabsTrigger>
+                    <TabsTrigger value="register">Sign Up</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="login" className="space-y-4">
+                    <Form {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                        <FormField
+                          control={loginForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <FormControl>
+                                  <Input
+                                    placeholder="Email"
+                                    className="pl-10"
+                                    {...field}
+                                  />
+                                </FormControl>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={loginForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <FormControl>
+                                  <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Password"
+                                    className="pl-10 pr-10"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-3 text-muted-foreground"
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="text-right">
+                          <Button 
+                            variant="link" 
+                            className="p-0 h-auto text-xs text-primary"
+                            onClick={() => setView("forgot-password")}
+                            type="button"
+                          >
+                            Forgot password?
+                          </Button>
+                        </div>
+                        <Button type="submit" className="w-full" disabled={loading}>
+                          {loading ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Signing in...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <LogIn className="h-4 w-4" />
+                              Sign in
+                            </span>
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </TabsContent>
+                  
+                  <TabsContent value="register" className="space-y-4">
+                    <Form {...registerForm}>
+                      <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={registerForm.control}
+                            name="firstName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    placeholder="First Name"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Last Name"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                         </div>
+                         <FormField
+                           control={registerForm.control}
+                           name="username"
+                           render={({ field }) => (
+                             <FormItem>
+                               <FormControl>
+                                 <UsernameInput
+                                   placeholder="Username"
+                                   {...field}
+                                 />
+                               </FormControl>
+                               <FormMessage />
+                             </FormItem>
+                           )}
+                         />
+                         <FormField
+                           control={registerForm.control}
+                           name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <FormControl>
+                                  <Input
+                                    placeholder="Email"
+                                    className="pl-10"
+                                    {...field}
+                                  />
+                                </FormControl>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={registerForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <FormControl>
+                                  <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Password"
+                                    className="pl-10 pr-10"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-3 text-muted-foreground"
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={loading}>
+                          {loading ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Creating account...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <UserPlus className="h-4 w-4" />
+                              Sign up
+                            </span>
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
+                  </TabsContent>
+                </Tabs>
+                
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                >
+                  <FcGoogle className="h-5 w-5 mr-2" />
+                  Google
+                </Button>
+              </CardContent>
+            </>
+          )}
+          <CardFooter className="flex justify-center border-t pt-5 text-xs text-muted-foreground">
+            <p>
+              {view === "login" 
+                ? "Don't have an account? " 
+                : view === "register" 
+                  ? "Already have an account? " 
+                  : "Remember your password? "}
+              <Link 
+                to={view === "register" ? "/auth/sign-in" : "/auth/register"}
+                className="text-primary hover:underline"
+              >
+                {view === "login" 
+                  ? "Sign up" 
+                  : view === "register" 
+                    ? "Sign in" 
+                    : "Sign in"}
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* Simple Footer */}
+      <footer className="py-4 text-center text-sm text-muted-foreground">
+        <p>© {new Date().getFullYear()} TradeLens. All rights reserved.</p>
+      </footer>
+    </div>
+  );
+};
+
+export default Auth;
