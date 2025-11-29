@@ -35,17 +35,19 @@ This document outlines the requirements for implementing a production-ready auth
 8. WHEN a user attempts to sign up with an existing email, THEN the TradeLens System SHALL return a clear error message and suggest signing in instead
 9. WHEN a user attempts to sign up with an existing username, THEN the TradeLens System SHALL return a clear error message prompting them to choose a different username
 
-### Requirement 2: Email Confirmation Flow
+### Requirement 2: Email Confirmation Flow (OTP-Based)
 
-**User Story:** As a platform administrator, I want to verify user email addresses, so that we maintain data quality and prevent spam accounts.
+**User Story:** As a platform administrator, I want to verify user email addresses using secure 6-digit codes, so that we maintain data quality and prevent spam accounts while providing a better user experience.
 
 #### Acceptance Criteria
 
-1. WHEN a user signs up with email/password, THEN the TradeLens System SHALL send a confirmation email with a secure verification link
-2. WHEN a user clicks the confirmation link, THEN the TradeLens System SHALL mark the email as confirmed and redirect to the dashboard
+1. WHEN a user signs up with email/password, THEN the TradeLens System SHALL send a 6-digit OTP code to their email
+2. WHEN a user enters the correct OTP code, THEN the TradeLens System SHALL mark the email as confirmed and redirect to the dashboard
 3. WHEN a user attempts to sign in without confirming email, THEN the TradeLens System SHALL display a message prompting email confirmation
-4. WHEN a user requests a new confirmation email, THEN the TradeLens System SHALL resend the confirmation link
-5. WHEN a confirmation link expires after 24 hours, THEN the TradeLens System SHALL allow the user to request a new confirmation email
+4. WHEN a user requests a new OTP code, THEN the TradeLens System SHALL resend a new 6-digit code
+5. WHEN an OTP code expires after 1 hour, THEN the TradeLens System SHALL allow the user to request a new code
+6. WHEN a user enters an invalid OTP code, THEN the TradeLens System SHALL display an error and allow retry
+7. WHEN a user pastes a 6-digit code, THEN the TradeLens System SHALL auto-fill all input fields
 
 ### Requirement 3: OAuth Authentication Flow
 
@@ -95,17 +97,18 @@ This document outlines the requirements for implementing a production-ready auth
 4. WHEN a user signs out, THEN the TradeLens System SHALL invalidate all tokens and clear local storage
 5. WHEN a user is inactive for 30 days, THEN the TradeLens System SHALL expire the session and require re-authentication
 
-### Requirement 7: Password Reset Flow
+### Requirement 7: Password Reset Flow (OTP-Based)
 
-**User Story:** As a user, I want to reset my password if I forget it, so that I can regain access to my account.
+**User Story:** As a user, I want to reset my password using a secure code if I forget it, so that I can regain access to my account.
 
 #### Acceptance Criteria
 
 1. WHEN a user clicks "Forgot Password", THEN the TradeLens System SHALL display a form to enter email address
-2. WHEN a user submits the forgot password form, THEN the TradeLens System SHALL send a password reset email with a secure link
-3. WHEN a user clicks the reset link, THEN the TradeLens System SHALL redirect to a password reset form
+2. WHEN a user submits the forgot password form, THEN the TradeLens System SHALL send a 6-digit OTP code to their email
+3. WHEN a user enters the correct OTP code, THEN the TradeLens System SHALL redirect to a password reset form
 4. WHEN a user submits a new password, THEN the TradeLens System SHALL update the password and redirect to login with success message
-5. WHEN a reset link expires after 1 hour, THEN the TradeLens System SHALL display an error and allow requesting a new reset link
+5. WHEN an OTP code expires after 1 hour, THEN the TradeLens System SHALL allow the user to request a new code
+6. WHEN a user enters an invalid OTP code, THEN the TradeLens System SHALL display an error and allow retry
 
 ### Requirement 8: User Profile Initialization
 

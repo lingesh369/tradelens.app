@@ -175,9 +175,9 @@ export function useTradeForm({ onSuccess, defaultStrategy, initialValues }: UseT
 
       console.log("Submitting trade data:", tradeData);
       
-      if (initialValues && 'trade_id' in initialValues) {
+      if (initialValues && 'id' in initialValues) {
         await updateTrade({
-          trade_id: initialValues.trade_id as string,
+          id: initialValues.id as string,
           ...tradeData
         });
         toast({

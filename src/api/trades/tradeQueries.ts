@@ -36,16 +36,15 @@ export const fetchTrades = async (userId: string): Promise<Trade[]> => {
 
   console.log("Fetching trades for user ID:", userId);
 
-  // Fetch trades with a join to trade_metrics to get the metrics data
-  // Specifying the exact relationship to use with !trade_metrics_trade_id_fkey
+  // Fetch trades with a left join to trade_metrics to get the metrics data
+  // Using the inner join syntax but Supabase will handle it as a left join for one-to-one relationships
   const { data, error } = await supabase
     .from("trades")
     .select(`
       *,
-      trade_metrics!trade_metrics_trade_id_fkey (
+      trade_metrics!left (
         net_p_and_l,
         gross_p_and_l,
-        total_fees,
         percent_gain,
         trade_outcome,
         r2r,
@@ -87,7 +86,9 @@ export const fetchTrades = async (userId: string): Promise<Trade[]> => {
   // Flatten the results to match our Trade interface
   return (data || []).map((item: any) => {
     // Safely extract metrics with null checks
-    const metrics = item?.trade_metrics ?? null;
+    // trade_metrics might be an array or a single object depending on the relationship
+    const metricsRaw = item?.trade_metrics;
+    const metrics = Array.isArray(metricsRaw) ? metricsRaw[0] : metricsRaw;
     
     // Resolve tag IDs to tag names
     const tagIds = deserializeTags(item.tags) || [];
@@ -136,17 +137,16 @@ export const fetchTrade = async (tradeId: string, userId: string): Promise<Trade
     .from("trades")
     .select(`
       *,
-      trade_metrics!trade_metrics_trade_id_fkey (
+      trade_metrics!left (
         net_p_and_l,
         gross_p_and_l,
-        total_fees,
         percent_gain,
         trade_outcome,
         r2r,
         trade_duration
       )
     `)
-    .eq("trade_id", tradeId)
+    .eq("id", tradeId)
     .eq("user_id", userId)
     .single();
 
@@ -161,7 +161,9 @@ export const fetchTrade = async (tradeId: string, userId: string): Promise<Trade
   if (!data) return null;
   
   // Safely extract metrics with null checks
-  const metrics = data?.trade_metrics ?? null;
+  // trade_metrics might be an array or a single object depending on the relationship
+  const metricsRaw = data?.trade_metrics;
+  const metrics = Array.isArray(metricsRaw) ? metricsRaw[0] : metricsRaw;
   
   // Resolve tag IDs to tag names for single trade
   const tagIds = deserializeTags(data.tags) || [];

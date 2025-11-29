@@ -33,7 +33,9 @@ const TradeDetailPage = () => {
 
   useEffect(() => {
     if (trades.length > 0 && tradeId) {
-      const foundTrade = trades.find(t => t.trade_id === tradeId);
+      const foundTrade = trades.find(t => t.id === tradeId);
+      console.log('Looking for trade with ID:', tradeId);
+      console.log('Found trade:', foundTrade);
       setTrade(foundTrade || null);
     }
   }, [trades, tradeId]);
@@ -78,7 +80,7 @@ const TradeDetailPage = () => {
   const handleTradeUpdate = async (updatedTrade: any) => {
     try {
       await updateTrade({
-        trade_id: updatedTrade.id,
+        id: updatedTrade.id,
         instrument: updatedTrade.symbol,
         action: updatedTrade.action.toLowerCase(),
         quantity: updatedTrade.quantity,
@@ -127,7 +129,7 @@ const TradeDetailPage = () => {
     const totalFees = (trade.commission || 0) + (trade.fees || 0);
     
     return {
-      id: trade.trade_id,
+      id: trade.id,
       symbol: trade.instrument,
       entryDate: entryDateTime,
       exitDate: exitDateTime,

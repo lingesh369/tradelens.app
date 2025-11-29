@@ -1,5 +1,5 @@
 export interface Trade {
-  trade_id: string;
+  id: string;
   user_id: string;
   instrument: string;
   action: string; // Allow any string but we'll ensure it's lowercase in our code
@@ -120,7 +120,7 @@ export const deserializeAdditionalImages = (jsonData: any): string[] | null => {
 };
 
 export interface TradeMetrics {
-  metric_id: string;
+  id: string;
   trade_id: string;
   user_id: string;
   pnl: number | null;
@@ -154,7 +154,7 @@ export interface TradeMetrics {
 
 export interface TradeImage {
   id: string;
-  trade_id: string;
+  trade_id: string; // This references trades.id
   user_id: string;
   image_url: string;
   image_name: string;

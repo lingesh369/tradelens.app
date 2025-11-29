@@ -50,24 +50,51 @@ export function useAccounts() {
     const { data, error } = await supabase
       .from("accounts")
       .select("*")
-      .eq("user_id", userId)
-      .order("account_name", { ascending: true });
+      .eq("user_id", userId);
+    
+    // Map database fields to frontend interface
+    const mappedData = data?.map((account: any) => ({
+      account_id: account.id,
+      account_name: account.name,
+      type: account.account_type,
+      broker: account.broker,
+      current_balance: account.current_balance,
+      starting_balance: account.initial_balance,
+      profit_loss: account.profit_loss,
+      status: account.is_active ? 'active' : 'inactive',
+      commission: account.commission,
+      fees: account.fees,
+      user_id: account.user_id,
+      created_on: account.created_at
+    })).sort((a, b) => a.account_name.localeCompare(b.account_name));
 
     if (error) {
       console.error('Error fetching accounts:', error);
       throw error;
     }
     
-    console.log('Accounts fetched successfully:', data);
-    return data || [];
+    console.log('Accounts fetched successfully:', mappedData);
+    return mappedData || [];
   };
 
   const createAccount = async (account: AccountFormValues): Promise<Account> => {
     if (!userId) throw new Error("User not authenticated");
 
+    // Map old field names to new schema
+    const accountData = {
+      user_id: userId,
+      name: account.account_name,
+      broker: account.broker,
+      account_type: account.type,
+      initial_balance: account.starting_balance,
+      current_balance: account.current_balance,
+      is_active: account.status === 'active' || account.status === 'Active',
+      currency: 'USD'
+    };
+
     const { data, error } = await supabase
       .from("accounts")
-      .insert([{ ...account, user_id: userId }])
+      .insert([accountData] as any)
       .select()
       .single();
 
@@ -78,10 +105,19 @@ export function useAccounts() {
   const updateAccount = async ({ account_id, accountData }: { account_id: string; accountData: Partial<AccountFormValues> }): Promise<Account> => {
     if (!userId) throw new Error("User not authenticated");
 
+    // Map old field names to new schema
+    const updateData: any = {};
+    if (accountData.account_name !== undefined) updateData.name = accountData.account_name;
+    if (accountData.broker !== undefined) updateData.broker = accountData.broker;
+    if (accountData.type !== undefined) updateData.account_type = accountData.type;
+    if (accountData.starting_balance !== undefined) updateData.initial_balance = accountData.starting_balance;
+    if (accountData.current_balance !== undefined) updateData.current_balance = accountData.current_balance;
+    if (accountData.status !== undefined) updateData.is_active = accountData.status === 'active' || accountData.status === 'Active';
+
     const { data, error } = await supabase
       .from("accounts")
-      .update(accountData)
-      .eq("account_id", account_id)
+      .update(updateData as any)
+      .eq("id", account_id) // Use 'id' for new schema
       .eq("user_id", userId)
       .select()
       .single();
@@ -96,7 +132,7 @@ export function useAccounts() {
     const { error } = await supabase
       .from("accounts")
       .delete()
-      .eq("account_id", account_id)
+      .eq("id", account_id) // Use 'id' for new schema (account_id is generated column)
       .eq("user_id", userId);
 
     if (error) throw error;

@@ -7,8 +7,8 @@ import { ImageUploadService } from "@/services/imageUploadService";
 /**
  * Updates an existing trade
  */
-export const updateTrade = async (tradeData: Partial<Trade> & { trade_id: string }): Promise<Trade> => {
-  const { trade_id, ...updateData } = tradeData;
+export const updateTrade = async (tradeData: Partial<Trade> & { id: string }): Promise<Trade> => {
+  const { id, ...updateData } = tradeData;
   
   // Process timestamps if they exist
   const processedData = { ...updateData };
@@ -22,6 +22,11 @@ export const updateTrade = async (tradeData: Partial<Trade> & { trade_id: string
   // Ensure action is lowercase if provided
   if (processedData.action) {
     processedData.action = processedData.action.toLowerCase();
+  }
+  
+  // Ensure market_type is lowercase if provided to match database constraint
+  if (processedData.market_type) {
+    processedData.market_type = processedData.market_type.toLowerCase();
   }
   
   // Ensure fees are positive if provided
@@ -57,7 +62,7 @@ export const updateTrade = async (tradeData: Partial<Trade> & { trade_id: string
   const { data, error } = await supabase
     .from("trades")
     .update(supabaseUpdateData)
-    .eq("trade_id", trade_id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -73,21 +78,20 @@ export const updateTrade = async (tradeData: Partial<Trade> & { trade_id: string
   await new Promise(resolve => setTimeout(resolve, 200));
 
   // Fetch the updated trade with metrics
-  const { data: updatedTradeWithMetrics, error: refetchError } = await supabase
+  const { data: updatedTradeWithMetrics, error: refetchError} = await supabase
     .from("trades")
     .select(`
       *,
-      trade_metrics!trade_metrics_trade_id_fkey (
+      trade_metrics!left (
         net_p_and_l,
         gross_p_and_l,
-        total_fees,
         percent_gain,
         trade_outcome,
         r2r,
         trade_duration
       )
     `)
-    .eq("trade_id", trade_id)
+    .eq("id", id)
     .single();
 
   if (refetchError) {
@@ -106,7 +110,8 @@ export const updateTrade = async (tradeData: Partial<Trade> & { trade_id: string
   }
 
   // Safely extract metrics with null checks
-  const metrics = updatedTradeWithMetrics?.trade_metrics ?? null;
+  const metricsRaw = updatedTradeWithMetrics?.trade_metrics;
+  const metrics = Array.isArray(metricsRaw) ? metricsRaw[0] : metricsRaw;
 
   // Flatten the results to match our Trade interface
   const result = {

@@ -32,6 +32,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<AuthResult>;
   resetPassword: (email: string) => Promise<AuthResult>;
   updatePassword: (password: string) => Promise<AuthResult>;
+  verifyOtp: (email: string, token: string, type: 'signup' | 'recovery' | 'email_change') => Promise<AuthResult>;
   signOut: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -564,7 +565,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearError();
       
       const result = await withRetry(async () => {
-        const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: undefined // Use OTP instead of magic link
+        });
 
         if (error) {
           throw error;
@@ -574,8 +577,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, 'password reset');
 
       toast({
-        title: "Password Reset Sent",
-        description: "Please check your email for password reset instructions.",
+        title: "Verification Code Sent",
+        description: "Please check your email for a 6-digit verification code.",
       });
 
       return { data: result, error: null, success: true };
@@ -663,6 +666,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const verifyOtp = async (email: string, token: string, type: 'signup' | 'recovery' | 'email_change'): Promise<AuthResult> => {
+    const operation = async () => {
+      setIsLoading(true);
+      clearError();
+      
+      const result = await withRetry(async () => {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email,
+          token,
+          type,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        return data;
+      }, 'OTP verification');
+
+      if (result.user) {
+        await fetchUserInfo(result.user);
+        
+        toast({
+          title: "Verification Successful!",
+          description: type === 'signup' 
+            ? "Welcome to TradeLens!" 
+            : "Email verified successfully.",
+        });
+      }
+
+      return { data: result, error: null, success: true };
+    };
+
+    setLastOperation(operation);
+
+    try {
+      return await operation();
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+      const authError = handleAuthError(error, 'OTP verification');
+      
+      toast({
+        title: "Verification Failed",
+        description: authError.message,
+        variant: "destructive",
+      });
+      
+      return { data: null, error: authError, success: false };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = signOut;
 
   const value: AuthContextType = {
@@ -682,6 +738,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithGoogle,
     resetPassword,
     updatePassword,
+    verifyOtp,
     signOut,
     logout,
     clearError,

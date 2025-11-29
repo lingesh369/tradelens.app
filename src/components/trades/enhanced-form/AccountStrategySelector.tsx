@@ -139,7 +139,11 @@ export function AccountStrategySelector({
         open={showAddStrategyDialog}
         onOpenChange={setShowAddStrategyDialog}
         onStrategyAdded={() => {
-          // Refresh strategies if needed
+          // The useStrategies hook in the parent will automatically update
+          // Force a small delay to ensure the state has updated
+          setTimeout(() => {
+            console.log('Strategy added, strategies should refresh automatically');
+          }, 100);
         }}
       />
     </>

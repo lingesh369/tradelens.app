@@ -14,9 +14,7 @@ import {
   updateTrade, 
   deleteTrade 
 } from "@/api/tradeService";
-import { generateDummyTrades, shouldShowDummyData } from "@/utils/dummyData";
 import { ImageUploadService } from "@/services/imageUploadService";
-import { useMemo } from "react";
 
 export type { Trade, TradeMetrics } from "@/types/trade";
 
@@ -37,13 +35,15 @@ export function useTrades() {
   // Fetch real trades query
   const tradesQuery = useQuery({
     queryKey: ["trades", userId],
-    queryFn: () => {
+    queryFn: async () => {
       if (!userId) {
         console.log("No user ID available for trades fetch");
         return [];
       }
       console.log("Fetching trades for user ID:", userId);
-      return fetchTrades(userId);
+      const trades = await fetchTrades(userId);
+      console.log(`Fetched ${trades.length} trades from database`);
+      return trades;
     },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
@@ -51,33 +51,14 @@ export function useTrades() {
     refetchOnWindowFocus: true,
   });
 
-  // Check if user has any real trades (unfiltered)
-  const hasRealTrades = useMemo(() => {
-    const realTrades = tradesQuery.data || [];
-    return realTrades.length > 0;
-  }, [tradesQuery.data]);
-
-  // Determine if we should show dummy data and generate it
-  const trades = useMemo(() => {
-    const realTrades = tradesQuery.data || [];
-    
-    if (shouldShowDummyData(realTrades) && userId) {
-      console.log("No real trades found, showing dummy data");
-      return generateDummyTrades(userId);
-    }
-    
-    console.log("Showing real trades:", realTrades.length);
-    return realTrades;
-  }, [tradesQuery.data, userId]);
-
-  // Check if currently showing dummy data
-  const isShowingDummyData = useMemo(() => {
-    return shouldShowDummyData(tradesQuery.data || []);
-  }, [tradesQuery.data]);
+  // Always use real trades data - no dummy data
+  const trades = tradesQuery.data || [];
+  const hasRealTrades = trades.length > 0;
+  const isShowingDummyData = false; // Disabled dummy data feature
 
   // Create trade mutation
   const createTradeMutation = useMutation({
-    mutationFn: async (tradeData: Omit<Trade, "trade_id" | "user_id" | "net_pl" | "percent_gain" | "trade_result" | "r2r" | "trade_duration">) => {
+    mutationFn: async (tradeData: Omit<Trade, "id" | "user_id" | "net_pl" | "percent_gain" | "trade_result" | "r2r" | "trade_duration">) => {
       if (!userId) {
         throw new Error("User not authenticated");
       }
@@ -95,8 +76,12 @@ export function useTrades() {
 
       return createTrade({...tradeData, notes: processedNotes}, userId, commissions);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Trade created successfully:', data);
+      // Invalidate and refetch trades immediately
       queryClient.invalidateQueries({ queryKey: ["trades", userId] });
+      queryClient.refetchQueries({ queryKey: ["trades", userId] });
+      console.log('Refetching trades for user:', userId);
       toast({
         title: "Trade added successfully",
       });
@@ -113,7 +98,7 @@ export function useTrades() {
 
   // Update trade mutation
   const updateTradeMutation = useMutation({
-    mutationFn: async (tradeData: Partial<Trade> & { trade_id: string }) => {
+    mutationFn: async (tradeData: Partial<Trade> & { id: string }) => {
       // Process notes to replace any base64 images with uploaded URLs
       let processedData = { ...tradeData };
       if (processedData.notes) {
@@ -184,8 +169,7 @@ export function useTrades() {
 
   return {
     trades,
-    // If we're showing dummy data, we're not loading anymore
-    isLoading: isShowingDummyData ? false : tradesQuery.isLoading,
+    isLoading: tradesQuery.isLoading,
     isError: tradesQuery.isError,
     error: tradesQuery.error,
     isShowingDummyData,

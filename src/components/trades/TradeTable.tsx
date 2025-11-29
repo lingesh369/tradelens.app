@@ -121,7 +121,7 @@ export function TradeTable({
     }
     
     if (onViewTrade) {
-      onViewTrade(trade.trade_id || trade.id);
+      onViewTrade(trade.id);
     }
   };
 
@@ -229,12 +229,12 @@ export function TradeTable({
                 ) : (
                   tableData.map(trade => (
                     <TradeTableRow
-                      key={trade.trade_id || trade.id}
+                      key={trade.id}
                       trade={trade}
                       availableColumns={availableColumns}
                       activeColumns={activeColumns}
-                      isSelected={selectedTrades.has(trade.trade_id || trade.id)}
-                      onSelect={(checked) => handleTradeSelect(trade.trade_id || trade.id, checked)}
+                      isSelected={selectedTrades.has(trade.id)}
+                      onSelect={(checked) => handleTradeSelect(trade.id, checked)}
                       onClick={(e) => handleRowClick(trade, e)}
                       formatDateTime={formatDateTime}
                       formatCurrency={formatCurrency}

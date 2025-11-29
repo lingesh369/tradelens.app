@@ -206,7 +206,8 @@ const Auth = () => {
             last_name: values.lastName || '',
             username: values.username || '',
             signup_source: 'web' // Track that this came from web app
-          }
+          },
+          emailRedirectTo: undefined // Disable magic link, use OTP instead
         }
       });
       
@@ -234,7 +235,7 @@ const Auth = () => {
       }
 
       if (data.user) {
-        console.log("User created successfully, database trigger will create profile");
+        console.log("User created successfully, verification code sent");
         
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
@@ -249,18 +250,19 @@ const Auth = () => {
             navigate("/dashboard");
           }, 2000);
         } else {
-          // Email confirmation is required
+          // Email confirmation is required via OTP
           toast({
             title: "Check your email",
-            description: "We've sent you a confirmation link. Please check your email to activate your account.",
+            description: "We've sent a 6-digit verification code to your email.",
           });
           
-          // Store email for resend functionality
-          localStorage.setItem("pending_confirmation_email", values.email);
+          // Store email and type for OTP verification
+          localStorage.setItem("pending_verification_email", values.email);
+          localStorage.setItem("verification_type", "signup");
           
-          // Clear the form and redirect to confirmation page
+          // Clear the form and redirect to OTP verification page
           registerForm.reset();
-          navigate("/auth/confirm-email");
+          navigate("/auth/verify-otp");
         }
       }
       
@@ -282,22 +284,30 @@ const Auth = () => {
     setAuthError(null);
     
     try {
-      const { error } = await resetPassword(values.email);
+      // Use OTP for password reset instead of magic link
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: undefined // Disable magic link
+      });
       
       if (error) throw error;
       
       toast({
-        title: "Password reset email sent",
-        description: "Check your email for a link to reset your password.",
+        title: "Verification code sent",
+        description: "Check your email for a 6-digit code to reset your password.",
       });
+      
+      // Store email and type for OTP verification
+      localStorage.setItem("pending_verification_email", values.email);
+      localStorage.setItem("verification_type", "recovery");
+      
       forgotPasswordForm.reset();
-      setView("login");
+      navigate("/auth/verify-otp");
     } catch (error: any) {
       console.error("Reset password error:", error);
-      setAuthError(error.message || "Failed to send reset password email");
+      setAuthError(error.message || "Failed to send reset password code");
       toast({
         title: "Error",
-        description: error.message || "Failed to send reset password email",
+        description: error.message || "Failed to send reset password code",
         variant: "destructive",
       });
     } finally {

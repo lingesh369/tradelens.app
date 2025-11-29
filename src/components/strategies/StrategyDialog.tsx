@@ -69,49 +69,35 @@ export function StrategyDialog({
       if (!userData.user) {
         throw new Error("User not authenticated");
       }
-
-      // Get the internal user ID from app_users table
-      const { data: appUser, error: appUserError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", userData.user.id)
-        .single();
-
-      if (appUserError) {
-        console.error("Error fetching internal user ID:", appUserError);
-        throw new Error("Could not get user information");
-      }
-
-      if (!appUser) {
-        throw new Error("User profile not found");
-      }
       
       if (editStrategy?.id) {
-        // Update existing strategy
+        // Update existing strategy (using new schema field names)
         const { error } = await supabase
           .from("strategies")
           .update({
-            strategy_name: name,
+            name: name, // Use 'name' instead of 'strategy_name'
             description: description,
           })
-          .eq("strategy_id", editStrategy.id)
-          .eq("user_id", appUser.user_id);
+          .eq("id", editStrategy.id) // Use 'id' instead of 'strategy_id'
+          .eq("user_id", userData.user.id); // Use auth user id directly
           
         if (error) throw error;
         toast.success("Strategy updated successfully");
       } else {
-        // Create new strategy
+        // Create new strategy (using new schema field names)
         const { error } = await supabase
           .from("strategies")
           .insert({
-            strategy_name: name,
+            name: name, // Use 'name' instead of 'strategy_name'
             description: description,
-            user_id: appUser.user_id,
+            user_id: userData.user.id, // Use auth user id directly
+            is_active: true,
+            is_public: false,
             total_trades: 0,
-            wins: 0,
-            losses: 0,
+            winning_trades: 0,
+            losing_trades: 0,
             win_rate: 0,
-            net_pl: 0,
+            total_pnl: 0,
           });
           
         if (error) {

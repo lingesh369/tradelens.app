@@ -25,6 +25,8 @@ import Notes from "./pages/Notes";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import EmailConfirmation from "./pages/EmailConfirmation";
+import VerifyOTP from "./pages/VerifyOTP";
+import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
@@ -137,6 +139,8 @@ function AppRoutes() {
         <Route path="/auth/sign-in" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
         <Route path="/auth/confirm-email" element={<EmailConfirmation />} />
+        <Route path="/auth/verify-otp" element={<VerifyOTP />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/pricing" element={<ExternalRedirect to="https://peakify.store/tradelens-pricing/" />} />
         <Route path="/direct-payment" element={<DirectPayment />} />
         <Route path="/payment/confirmation" element={<PaymentConfirmation />} />

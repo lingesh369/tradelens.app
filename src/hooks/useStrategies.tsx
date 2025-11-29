@@ -42,12 +42,25 @@ export function useStrategies() {
       const { data, error } = await supabase
         .from("strategies")
         .select("*")
-        .eq("user_id", userId)
-        .order("strategy_name", { ascending: true });
+        .eq("user_id", userId);
         
       if (error) throw error;
       
-      setStrategies(data || []);
+      // Map database fields to frontend interface
+      const mappedData = data?.map((strategy: any) => ({
+        strategy_id: strategy.id,
+        strategy_name: strategy.name,
+        description: strategy.description,
+        total_trades: strategy.total_trades,
+        wins: strategy.winning_trades,
+        losses: strategy.losing_trades,
+        win_rate: strategy.win_rate,
+        net_pl: strategy.total_pnl,
+        user_id: strategy.user_id,
+        notes: strategy.notes
+      })).sort((a, b) => a.strategy_name.localeCompare(b.strategy_name));
+      
+      setStrategies(mappedData || []);
     } catch (err) {
       console.error("Error fetching strategies:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch strategies");
@@ -72,11 +85,11 @@ export function useStrategies() {
       // The user.id from auth IS the user_id in app_users and other tables
       const userId = userData.user.id;
       
-      // First delete strategy rules associated with this strategy
+      // First delete strategy rules associated with this strategy (use 'id' for new schema)
       const { error: rulesError } = await supabase
         .from("strategy_rules")
         .delete()
-        .eq("strategy_id", strategyId)
+        .eq("strategy_id", strategyId) // strategy_id is the foreign key, keep as is
         .eq("user_id", userId);
         
       if (rulesError) {
@@ -84,11 +97,11 @@ export function useStrategies() {
         // Continue with strategy deletion even if rules deletion fails
       }
       
-      // Then delete the strategy
+      // Then delete the strategy (use 'id' for new schema)
       const { error: strategyError } = await supabase
         .from("strategies")
         .delete()
-        .eq("strategy_id", strategyId)
+        .eq("id", strategyId) // Use 'id' instead of 'strategy_id'
         .eq("user_id", userId);
         
       if (strategyError) throw strategyError;
@@ -120,13 +133,21 @@ export function useStrategies() {
       // The user.id from auth IS the user_id in app_users and other tables
       const userId = userData.user.id;
       
+      // Map old field names to new schema
       const { error: createError } = await supabase
         .from("strategies")
-        .insert({
-          strategy_name: strategyData.strategy_name,
+        .insert([{
+          name: strategyData.strategy_name,
           description: strategyData.description,
-          user_id: userId
-        });
+          user_id: userId,
+          is_active: true,
+          is_public: false,
+          total_trades: 0,
+          winning_trades: 0,
+          losing_trades: 0,
+          win_rate: 0,
+          total_pnl: 0
+        }] as any);
         
       if (createError) throw createError;
       

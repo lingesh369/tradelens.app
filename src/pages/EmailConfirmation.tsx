@@ -13,13 +13,13 @@ const EmailConfirmation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Check if this is a confirmation callback
+  // Check if this is a confirmation callback or redirect to OTP
   useEffect(() => {
     const token = searchParams.get("token");
     const type = searchParams.get("type");
     
     if (token && type === "signup") {
-      // Supabase handles confirmation automatically
+      // Old magic link - Supabase handles confirmation automatically
       toast({
         title: "Email confirmed!",
         description: "Your email has been verified. Redirecting to dashboard...",
@@ -28,6 +28,12 @@ const EmailConfirmation = () => {
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
+    } else {
+      // Redirect to OTP verification page (new flow)
+      const email = localStorage.getItem("pending_verification_email");
+      if (email) {
+        navigate("/auth/verify-otp");
+      }
     }
   }, [searchParams, navigate, toast]);
 

@@ -127,7 +127,7 @@ const Trades = () => {
     }
     
     return {
-      id: trade.trade_id,
+      id: trade.id,
       instrument: trade.instrument,
       entryDate: formatDateTime(trade.entry_time || ''),
       exitDate: exitDate,

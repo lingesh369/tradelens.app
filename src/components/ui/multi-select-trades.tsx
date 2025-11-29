@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface Trade {
-  trade_id: string;
+  id: string;
   instrument: string;
   action: string;
   entry_price: number;
@@ -35,7 +35,7 @@ export function MultiSelectTrades({ trades, selectedTrades, onSelectionChange, c
     if (selectedTrades.length === trades.length) {
       onSelectionChange([]);
     } else {
-      onSelectionChange(trades.map(trade => trade.trade_id));
+      onSelectionChange(trades.map(trade => trade.id));
     }
   };
 
@@ -90,8 +90,8 @@ export function MultiSelectTrades({ trades, selectedTrades, onSelectionChange, c
                 </CommandItem>
                 {trades.map((trade) => (
                   <CommandItem
-                    key={trade.trade_id}
-                    onSelect={() => handleToggleTrade(trade.trade_id)}
+                    key={trade.id}
+                    onSelect={() => handleToggleTrade(trade.id)}
                     className="cursor-pointer"
                   >
                     <Check

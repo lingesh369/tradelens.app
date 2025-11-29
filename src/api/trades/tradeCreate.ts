@@ -8,7 +8,7 @@ import { ImageUploadService } from "@/services/imageUploadService";
  * Creates a new trade
  */
 export const createTrade = async (
-  trade: Omit<Trade, "trade_id" | "user_id" | "net_pl" | "percent_gain" | "trade_result" | "r2r" | "trade_duration">, 
+  trade: Omit<Trade, "id" | "user_id" | "net_pl" | "percent_gain" | "trade_result" | "r2r" | "trade_duration">, 
   userId: string,
   commissions: { account_id: string | null; market_type: string; total_fees: number }[]
 ): Promise<Trade> => {
@@ -20,6 +20,9 @@ export const createTrade = async (
   // Ensure action is lowercase no matter what
   const action = (trade.action || "buy").toLowerCase();
   
+  // Ensure market_type is lowercase to match database constraint
+  const market_type = trade.market_type ? trade.market_type.toLowerCase() : null;
+  
   // Process notes to replace any base64 images with uploaded URLs
   let processedNotes = trade.notes;
   if (processedNotes) {
@@ -29,6 +32,7 @@ export const createTrade = async (
   const tradeData = { 
     ...trade,
     action,
+    market_type,
     user_id: userId, 
     // Ensure commission and fees are always positive
     commission: Math.abs(trade.commission || 0),
@@ -71,17 +75,16 @@ export const createTrade = async (
     .from("trades")
     .select(`
       *,
-      trade_metrics!trade_metrics_trade_id_fkey (
+      trade_metrics!left (
         net_p_and_l,
         gross_p_and_l,
-        total_fees,
         percent_gain,
         trade_outcome,
         r2r,
         trade_duration
       )
     `)
-    .eq("trade_id", data.trade_id)
+    .eq("id", data.id)
     .single();
     
   if (fetchError) {
@@ -100,7 +103,8 @@ export const createTrade = async (
   }
   
   // Safely extract metrics with null checks
-  const metrics = tradeWithMetrics?.trade_metrics ?? null;
+  const metricsRaw = tradeWithMetrics?.trade_metrics;
+  const metrics = Array.isArray(metricsRaw) ? metricsRaw[0] : metricsRaw;
 
   // Flatten the results to match our Trade interface
   const result = {

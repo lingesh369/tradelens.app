@@ -28,11 +28,16 @@ export function EnhancedManualTradeForm({
 }: EnhancedManualTradeFormProps) {
   const [activeTab, setActiveTab] = useState("details");
   const { accounts } = useAccounts();
-  const { strategies } = useStrategies();
+  const { strategies, refetch: refetchStrategies } = useStrategies();
   const { tags } = useTags();
   const { toast } = useToast();
   const { createTrade } = useTrades();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Debug: Log strategies when they change
+  useEffect(() => {
+    console.log('Strategies updated in EnhancedManualTradeForm:', strategies);
+  }, [strategies]);
 
   // Get last used account from localStorage
   const getLastUsedAccount = () => {

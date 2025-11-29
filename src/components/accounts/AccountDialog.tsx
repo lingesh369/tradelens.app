@@ -155,14 +155,14 @@ const AccountDialog = ({
           }
         });
       } else {
-        // Create new account using the hook
+        // Create new account using the hook (using old field names for compatibility)
         createAccount({
           account_name: accountName,
           broker: broker,
           type: type,
           starting_balance: startingBalance,
           current_balance: startingBalance,
-          status: 'Active'
+          status: 'active' // lowercase to match new schema
         });
       }
       onOpenChange(false);

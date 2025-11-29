@@ -84,11 +84,11 @@ export function AddAccountDialog({ open, onOpenChange, onAccountAdded }: AddAcco
 
       await createAccount({
         account_name: accountName,
-        type: accountType,
+        type: accountType.toLowerCase(), // Convert to lowercase for new schema (live, demo, paper)
         broker: broker || null,
         starting_balance: parseFloat(startingBalance) || 0,
         current_balance: parseFloat(startingBalance) || 0,
-        status: "Active"
+        status: "active" // lowercase to match new schema
       });
 
       toast({
