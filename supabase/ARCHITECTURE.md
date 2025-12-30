@@ -12,7 +12,7 @@
              ▼                                    ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Supabase Edge Functions                       │
-│          https://tzhhxeyisppkzyjacodu.supabase.co              │
+│          https://tjbrbmywiucblznkjqyi.supabase.co              │
 │                                                                  │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │  Payment APIs    │  │   AI Functions   │  │   Webhooks   │ │

@@ -45,16 +45,16 @@ bash supabase/deploy-functions.sh
 ### Step 3: Configure Webhooks (3 minutes)
 
 **Cashfree:**
-`https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/cashfree-webhook`
+`https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/cashfree-webhook`
 
 **NOWPayments:**
-`https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/nowpayments-webhook`
+`https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/nowpayments-webhook`
 
 ## Function URLs
 
 All functions available at:
 ```
-https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/{function-name}
+https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/{function-name}
 ```
 
 ### Payment Functions
@@ -79,13 +79,13 @@ https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/{function-name}
 
 ```bash
 # Test AI Chat
-curl -X POST https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/ai-chat \
+curl -X POST https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/ai-chat \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"message":"Analyze my recent trades"}'
 
 # Test Cashfree Order
-curl -X POST https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/create-cashfree-order \
+curl -X POST https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/create-cashfree-order \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"planId":"pro","billingCycle":"monthly","amount":999}'

@@ -6,7 +6,7 @@ This guide covers deploying all TradeLens edge functions to Supabase.
 ## Prerequisites
 1. Supabase CLI installed: `npm install -g supabase`
 2. Logged in to Supabase: `supabase login`
-3. Linked to your project: `supabase link --project-ref tzhhxeyisppkzyjacodu`
+3. Linked to your project: `supabase link --project-ref tjbrbmywiucblznkjqyi`
 
 ## Environment Variables Required
 
@@ -74,24 +74,24 @@ supabase functions deploy analyze-trades-with-gpt
 ## Function URLs
 After deployment, your functions will be available at:
 ```
-https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/{function-name}
+https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/{function-name}
 ```
 
 ## Webhook Configuration
 
 ### Cashfree Webhook
 1. Go to Cashfree Dashboard → Webhooks
-2. Add webhook URL: `https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/cashfree-webhook`
+2. Add webhook URL: `https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/cashfree-webhook`
 3. Select events: `ORDER_PAID`, `ORDER_FAILED`
 
 ### PayPal Webhook (if needed)
 1. Go to PayPal Developer Dashboard → Webhooks
-2. Add webhook URL: `https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/paypal-webhook`
+2. Add webhook URL: `https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/paypal-webhook`
 3. Select events: `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`
 
 ### NOWPayments Webhook
 1. Go to NOWPayments Dashboard → Settings → IPN
-2. Add IPN URL: `https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/nowpayments-webhook`
+2. Add IPN URL: `https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/nowpayments-webhook`
 
 ## Testing Functions Locally
 

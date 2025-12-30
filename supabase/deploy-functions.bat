@@ -73,6 +73,6 @@ echo 2. Test payment flows end-to-end
 echo 3. Monitor function logs: supabase functions logs ^<function-name^>
 echo.
 echo Function URLs:
-echo https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/{function-name}
+echo https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/{function-name}
 
 pause

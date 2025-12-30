@@ -158,14 +158,14 @@ supabase functions logs <function-name> --follow
 
 ### Test Payment
 ```bash
-curl -X POST https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/create-cashfree-order \
+curl -X POST https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/create-cashfree-order \
   -H "Authorization: Bearer TOKEN" \
   -d '{"planId":"pro","billingCycle":"monthly","amount":999}'
 ```
 
 ### Test AI
 ```bash
-curl -X POST https://tzhhxeyisppkzyjacodu.supabase.co/functions/v1/ai-chat \
+curl -X POST https://tjbrbmywiucblznkjqyi.supabase.co/functions/v1/ai-chat \
   -H "Authorization: Bearer TOKEN" \
   -d '{"message":"Analyze my trades"}'
 ```

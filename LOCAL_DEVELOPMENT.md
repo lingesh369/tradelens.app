@@ -31,7 +31,7 @@ The `.env` file has been configured for production development:
 
 ```env
 # Supabase Configuration for Production Development
-VITE_SUPABASE_URL=https://tzhhxeyisppkzyjacodu.supabase.co
+VITE_SUPABASE_URL=https://tjbrbmywiucblznkjqyi.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 APP_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:3000

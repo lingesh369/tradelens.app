@@ -38,7 +38,7 @@ REM Check if the MCP config file exists
 if exist ".mcp-config.json" (
     echo ✅ MCP configuration file found
     echo 📝 Please update the SUPABASE_SERVICE_ROLE_KEY in .mcp-config.json
-    echo 🔑 Get your service role key from: https://supabase.com/dashboard/project/tzhhxeyisppkzyjacodu/settings/api
+    echo 🔑 Get your service role key from: https://supabase.com/dashboard/project/tjbrbmywiucblznkjqyi/settings/api
 ) else (
     echo ❌ MCP configuration file not found
     pause
