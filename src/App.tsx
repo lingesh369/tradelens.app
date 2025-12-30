@@ -52,6 +52,7 @@ import PaymentsPage from "./pages/admin/PaymentsPage";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import { Community } from "./pages/Community";
 import { TraderProfile } from "./pages/TraderProfile";
+import HashFragmentHandler from "./components/auth/HashFragmentHandler";
 
 // Create query client outside of component to avoid recreation
 const queryClient = new QueryClient({
@@ -209,6 +210,9 @@ function AppRoutes() {
       
       {/* Render the upgrade modal component so it's available globally */}
       <UpgradeModalComponent />
+      
+      {/* Handle OAuth redirects with hash fragments */}
+      <HashFragmentHandler />
     </AccessWrapper>
   );
 }
