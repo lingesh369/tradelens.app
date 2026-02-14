@@ -18,13 +18,13 @@ import { deserializePartialExits, deserializeTags, deserializeAdditionalImages }
 import { Account } from "@/hooks/useAccounts";
 import { Strategy } from "@/hooks/useStrategies";
 import { Tag } from "@/hooks/useTags";
-import { 
-  Breadcrumb, 
-  BreadcrumbList, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 
 const SharedTradePage = () => {
@@ -37,13 +37,13 @@ const SharedTradePage = () => {
   const [error, setError] = useState<string>("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
-  const [customLinks, setCustomLinks] = useState<Array<{id: string, label: string, url: string}>>([]);
+  const [customLinks, setCustomLinks] = useState<Array<{ id: string, label: string, url: string }>>([]);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
-  
+
   const communityAction = useCommunityAction();
-  
+
   // State for trade owner's data
   const [tradeOwnerAccounts, setTradeOwnerAccounts] = useState<Account[]>([]);
   const [tradeOwnerStrategies, setTradeOwnerStrategies] = useState<Strategy[]>([]);
@@ -56,10 +56,10 @@ const SharedTradePage = () => {
   useEffect(() => {
     const fetchSharedTrade = async () => {
       if (!tradeId) return;
-      
+
       try {
         setIsLoading(true);
-        
+
         // Fetch the shared trade with user information and metrics
         const { data: tradeData, error: tradeError } = await supabase
           .from('trades')
@@ -78,7 +78,7 @@ const SharedTradePage = () => {
           .eq('id', tradeId)
           .eq('is_shared', true)
           .single();
-          
+
         if (tradeError) {
           if (tradeError.code === 'PGRST116') {
             setError("This trade is not shared or doesn't exist.");
@@ -88,17 +88,17 @@ const SharedTradePage = () => {
           }
           return;
         }
-        
+
         if (!tradeData) {
           setError("Trade not found or not shared.");
           return;
         }
-        
+
         // Set the trade data with proper type casting and JSON deserialization
         // Extract metrics
         const metricsRaw = tradeData?.trade_metrics;
         const metrics = Array.isArray(metricsRaw) ? metricsRaw[0] : metricsRaw;
-        
+
         const tradeWithSharing: Trade = {
           ...tradeData,
           // Map metrics fields
@@ -122,14 +122,14 @@ const SharedTradePage = () => {
           contract_multiplier: tradeData.contract_multiplier ?? 1,
           status: (tradeData.status as "open" | "partially_closed" | "closed") || "open",
         };
-        
+
         setTrade(tradeWithSharing);
-        
+
         // Handle user data safely
         const userData = tradeData.app_users as any;
         let tradeOwnerId = null;
         let tradeOwnerUsername = "";
-        
+
         if (userData && Array.isArray(userData) && userData.length > 0) {
           tradeOwnerUsername = userData[0].username || userData[0].email || "Unknown User";
           tradeOwnerId = userData[0].id;
@@ -139,7 +139,7 @@ const SharedTradePage = () => {
         } else {
           tradeOwnerUsername = "Unknown User";
         }
-        
+
         setUsername(tradeOwnerUsername);
 
         // Fetch trader profile data
@@ -158,39 +158,52 @@ const SharedTradePage = () => {
             `)
             .eq('user_id', tradeOwnerId)
             .single();
-            
+
           if (!profileError && profileData) {
             setTraderProfile(profileData);
-            
+
             // Extract custom links from social_links
             if (profileData?.social_links?.custom_links_data) {
               setCustomLinks(profileData.social_links.custom_links_data);
             }
           }
 
-          // Fetch trade interaction data (likes, comments)
-          const { data: tradeInteractions, error: interactionsError } = await supabase
-            .from('trade_interactions')
-            .select('likes_count, comments_count, is_liked_by_user')
-            .eq('trade_id', tradeId)
-            .maybeSingle();
+          // Fetch trade interaction data (likes, comments) using RPC functions
+          const { data: { user } } = await supabase.auth.getUser();
 
-          if (!interactionsError && tradeInteractions) {
-            setLikesCount(tradeInteractions.likes_count || 0);
-            setCommentsCount(tradeInteractions.comments_count || 0);
-            setIsLiked(tradeInteractions.is_liked_by_user || false);
+          // Get likes count
+          const { data: likesCountData } = await supabase
+            .rpc('get_trade_like_count', { p_trade_id: tradeId });
+
+          // Get comments count  
+          const { data: commentsCountData } = await supabase
+            .rpc('get_trade_comment_count', { p_trade_id: tradeId });
+
+          // Check if current user liked this trade
+          let isLikedData = false;
+          if (user) {
+            const { data } = await supabase
+              .rpc('has_liked_trade', {
+                p_user_id: user.id,
+                p_trade_id: tradeId
+              });
+            isLikedData = data || false;
           }
+
+          setLikesCount(likesCountData || 0);
+          setCommentsCount(commentsCountData || 0);
+          setIsLiked(isLikedData);
         }
 
         // Fetch trade owner's accounts, strategies, and tags
-        
+
         if (tradeOwnerId) {
           // Fetch accounts
           const { data: accountsData, error: accountsError } = await supabase
             .from('accounts')
             .select('*')
             .eq('user_id', tradeOwnerId);
-          
+
           if (!accountsError && accountsData) {
             setTradeOwnerAccounts(accountsData);
           }
@@ -200,7 +213,7 @@ const SharedTradePage = () => {
             .from('strategies')
             .select('*')
             .eq('user_id', tradeOwnerId);
-          
+
           if (!strategiesError && strategiesData) {
             setTradeOwnerStrategies(strategiesData);
           }
@@ -210,12 +223,12 @@ const SharedTradePage = () => {
             .from('tags')
             .select('*')
             .eq('user_id', tradeOwnerId);
-          
+
           if (!tagsError && tagsData) {
             setTradeOwnerTags(tagsData);
           }
         }
-        
+
       } catch (error) {
         console.error("Error fetching shared trade:", error);
         setError("An error occurred while loading the trade.");
@@ -223,13 +236,13 @@ const SharedTradePage = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchSharedTrade();
   }, [tradeId]);
 
   const handleShareToggle = async (shared: boolean) => {
     if (!tradeId) return;
-    
+
     try {
       const { error } = await supabase
         .from('trades')
@@ -238,7 +251,7 @@ const SharedTradePage = () => {
           shared_at: shared ? new Date().toISOString() : null
         })
         .eq('id', tradeId);
-        
+
       if (error) {
         toast({
           title: "Error",
@@ -247,11 +260,11 @@ const SharedTradePage = () => {
         });
         return;
       }
-      
+
       if (trade) {
         setTrade({ ...trade, is_shared: shared });
       }
-      
+
       toast({
         title: shared ? "Trade shared" : "Sharing disabled",
         description: shared ? "Trade is now publicly accessible" : "Trade is no longer shared"
@@ -268,47 +281,54 @@ const SharedTradePage = () => {
 
   const handleFollow = async () => {
     if (!traderProfile?.user_id || isFollowLoading) return;
-    
+
     setIsFollowLoading(true);
     try {
       const isCurrentlyFollowing = traderProfile.is_followed_by_user;
-      
+
       if (isCurrentlyFollowing) {
-        // Unfollow
+        // Unfollow - need to get current user ID
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         const { error } = await supabase
-          .from('user_follows')
+          .from('community_follows')
           .delete()
-          .eq('follower_id', traderProfile.user_id);
-          
+          .eq('follower_id', user.id)
+          .eq('following_id', traderProfile.user_id);
+
         if (error) throw error;
-        
+
         setTraderProfile(prev => ({
           ...prev,
           is_followed_by_user: false,
           followers_count: (prev.followers_count || 0) - 1
         }));
-        
+
         toast({
           title: "Unfollowed",
           description: `You are no longer following ${username}`,
         });
       } else {
-        // Follow
+        // Follow - need to get current user ID
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         const { error } = await supabase
-          .from('user_follows')
+          .from('community_follows')
           .insert({
-            follower_id: traderProfile.user_id,
-            followed_at: new Date().toISOString()
+            follower_id: user.id,
+            following_id: traderProfile.user_id
           });
-          
+
         if (error) throw error;
-        
+
         setTraderProfile(prev => ({
           ...prev,
           is_followed_by_user: true,
           followers_count: (prev.followers_count || 0) + 1
         }));
-        
+
         toast({
           title: "Following",
           description: `You are now following ${username}`,
@@ -328,7 +348,7 @@ const SharedTradePage = () => {
 
   const handleMessage = () => {
     if (!traderProfile?.user_id) return;
-    
+
     // Navigate to messages or open chat
     toast({
       title: "Message Feature",
@@ -338,13 +358,13 @@ const SharedTradePage = () => {
 
   const handleLike = async () => {
     if (!tradeId) return;
-    
+
     try {
       await communityAction.mutateAsync({
         action: isLiked ? 'unlike' : 'like',
         tradeId: tradeId
       });
-      
+
       setIsLiked(!isLiked);
       setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
     } catch (error) {
@@ -371,7 +391,7 @@ const SharedTradePage = () => {
     const entryDateTime = trade.entry_time || new Date().toISOString();
     const exitDateTime = trade.exit_time || undefined;
     const totalFees = (trade.commission || 0) + (trade.fees || 0);
-    
+
     return {
       id: trade.trade_id,
       symbol: trade.instrument,
@@ -412,10 +432,10 @@ const SharedTradePage = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar mobileOpen={mobileMenuOpen} onMobileOpenChange={setMobileMenuOpen} forceCollapsible={isMobile} />
-      
+
       <div className="flex-1 lg:ml-56 overflow-hidden">
         <TopBar title="Shared Trade" showMobileMenu={isMobile} onMobileMenuClick={() => setMobileMenuOpen(true)} />
-        
+
         {/* Header Section */}
         <div className="bg-card border-b px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           {/* Responsive layout: single row on larger screens, stacked on mobile */}
@@ -430,7 +450,7 @@ const SharedTradePage = () => {
                   @{username}
                 </span>
               </div>
-              
+
               {/* Separator and Custom Links */}
               {customLinks.length > 0 && (
                 <>
@@ -456,13 +476,13 @@ const SharedTradePage = () => {
                 </>
               )}
             </div>
-            
+
             {/* Right Container - Action buttons */}
             <div className="flex items-center gap-3 flex-shrink-0 order-2 sm:order-2 justify-start sm:justify-end">
               {/* Desktop: Full buttons with text */}
               <div className="hidden lg:flex items-center gap-3">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={handleLike}
                   className="h-9 px-4 hover:bg-red-50 dark:hover:bg-red-950/20"
@@ -470,8 +490,8 @@ const SharedTradePage = () => {
                   <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                   <span className="text-xs">{likesCount}</span>
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={handleComment}
                   className="h-9 px-4 hover:bg-blue-50 dark:hover:bg-blue-950/20"
@@ -486,19 +506,19 @@ const SharedTradePage = () => {
                   isOwner={false}
                 />
               </div>
-              
+
               {/* Mobile/Tablet: Icon-only buttons */}
               <div className="flex lg:hidden items-center gap-2">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={handleLike}
                   className="h-9 w-9 p-0 hover:bg-red-50 dark:hover:bg-red-950/20"
                 >
                   <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={handleComment}
                   className="h-9 w-9 p-0 hover:bg-blue-50 dark:hover:bg-blue-950/20"
@@ -515,7 +535,7 @@ const SharedTradePage = () => {
             </div>
           </div>
         </div>
-        
+
         <main className="px-4 sm:px-6 lg:px-8 overflow-auto h-[calc(100vh-128px)]">
           {isLoading ? (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -558,10 +578,10 @@ const SharedTradePage = () => {
                   </BreadcrumbList>
                 </Breadcrumb>
               </div>
-              
-              <TradeDetail 
-                {...mapTradeForDisplay(trade)} 
-                onBack={() => navigate("/trades")} 
+
+              <TradeDetail
+                {...mapTradeForDisplay(trade)}
+                onBack={() => navigate("/trades")}
                 isReadOnly={true}
                 hideBackButton={true}
               />

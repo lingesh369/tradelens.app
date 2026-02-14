@@ -495,7 +495,7 @@ const fetchUserSettings = async (userId: string) => {
   
   try {
     const { data, error } = await supabase
-      .from('settings')
+      .from('user_settings')
       .select('*')
       .eq('user_id', userId)
       .single();

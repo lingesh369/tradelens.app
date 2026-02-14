@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Trade, serializePartialExits, serializeTags, serializeAdditionalImages } from "@/types/trade";
+import { Trade } from "@/types/trade";
 import { toUTCDateTime } from "@/utils/tradeUtils";
 import { ImageUploadService } from "@/services/imageUploadService";
 
@@ -45,18 +45,18 @@ export const updateTrade = async (tradeData: Partial<Trade> & { id: string }): P
     );
   }
   
-  // Prepare data for Supabase update - serialize JSON fields and ensure proper typing
+  // Prepare data for Supabase update - pass JSON fields directly
   const supabaseUpdateData: any = { ...processedData };
   
-  // Serialize JSON fields if they exist
+  // Supabase handles JSONB serialization automatically - pass objects/arrays directly
   if (processedData.partial_exits !== undefined) {
-    supabaseUpdateData.partial_exits = serializePartialExits(processedData.partial_exits);
+    supabaseUpdateData.partial_exits = processedData.partial_exits || null;
   }
   if (processedData.tags !== undefined) {
-    supabaseUpdateData.tags = serializeTags(processedData.tags);
+    supabaseUpdateData.tags = processedData.tags || null;
   }
   if (processedData.additional_images !== undefined) {
-    supabaseUpdateData.additional_images = serializeAdditionalImages(processedData.additional_images);
+    supabaseUpdateData.additional_images = processedData.additional_images || null;
   }
 
   const { data, error } = await supabase

@@ -1,0 +1,4 @@
+entry_time,exit_time,action,quantity,instrument,entry_price,exit_price,sl,target,commission,fees,market_type,contract,notes,strategy_id,chart_link,rating,contract_multiplier
+2024-02-14 09:30:00,2024-02-14 15:45:00,buy,100,AAPL,150.50,155.75,148.00,160.00,1.50,0.50,stocks,,Test trade 1,,,4,1
+2024-02-14 10:00:00,2024-02-14 16:00:00,sell,50,TSLA,200.00,195.50,205.00,190.00,2.00,0.75,stocks,,Test trade 2,,,3,1
+2024-02-14 11:30:00,,buy,10,BTC/USD,45000.00,,44000.00,50000.00,5.00,2.00,crypto,,Open position,,,5,1

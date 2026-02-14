@@ -203,7 +203,7 @@ export function TradeDetail({
     stopLoss: stopLoss || null,
     target: target || null,
     commission: 0,
-    fees: fees
+    fees: 0
   });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);

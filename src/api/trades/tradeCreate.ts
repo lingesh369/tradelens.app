@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Trade, serializePartialExits, serializeTags, serializeAdditionalImages } from "@/types/trade";
+import { Trade } from "@/types/trade";
 import { toUTCDateTime, calculateFees } from "@/utils/tradeUtils";
 import { ImageUploadService } from "@/services/imageUploadService";
 
@@ -44,10 +44,10 @@ export const createTrade = async (
     rating: trade.rating || null,
     contract_multiplier: trade.contract_multiplier || 1,
     notes: processedNotes,
-    // Serialize JSON fields for database storage
-    partial_exits: serializePartialExits(trade.partial_exits),
-    tags: serializeTags(trade.tags),
-    additional_images: serializeAdditionalImages(trade.additional_images)
+    // Pass JSON fields directly - Supabase handles JSONB serialization automatically
+    partial_exits: trade.partial_exits || null,
+    tags: trade.tags || null,
+    additional_images: trade.additional_images || null
   };
   
   console.log("Sending trade data to Supabase:", tradeData);

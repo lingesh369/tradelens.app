@@ -52,7 +52,7 @@ const TradeDetailPage = () => {
 
   // Helper function to find strategy by slug
   const findStrategyBySlug = (slug: string) => {
-    return strategies.find(strategy => 
+    return strategies.find(strategy =>
       createStrategySlug(strategy.strategy_name) === slug
     );
   };
@@ -124,10 +124,10 @@ const TradeDetailPage = () => {
     // Use the actual entry_time and exit_time from the trade data
     const entryDateTime = trade.entry_time || new Date().toISOString();
     const exitDateTime = trade.exit_time || undefined;
-    
+
     // Calculate total fees from commission and fees
     const totalFees = (trade.commission || 0) + (trade.fees || 0);
-    
+
     return {
       id: trade.id,
       symbol: trade.instrument,
@@ -162,10 +162,10 @@ const TradeDetailPage = () => {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar mobileOpen={mobileMenuOpen} onMobileOpenChange={setMobileMenuOpen} forceCollapsible={isMobile} />
-      
+
       <div className="flex-1 lg:ml-56 overflow-hidden">
         <TopBar title="Trade Details" showMobileMenu={isMobile} onMobileMenuClick={() => setMobileMenuOpen(true)} />
-        
+
         <main className="p-3 sm:p-4 lg:p-6 overflow-auto h-[calc(100vh-64px)] py-0">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">

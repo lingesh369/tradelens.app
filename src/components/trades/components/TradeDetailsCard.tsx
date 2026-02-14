@@ -19,7 +19,7 @@ interface TradeDetailsCardProps {
   stopLoss: number | null;
   commission: number;
   fees: number;
-  
+
   // Props needed for trade management section
   accounts: Account[];
   strategies: Strategy[];
@@ -31,7 +31,7 @@ interface TradeDetailsCardProps {
   tradeRating?: number;
   isReadOnly?: boolean;
   onEdit?: () => void;
-  
+
   // Handlers for trade management section
   onAccountChange: (value: string) => void;
   onTimeframeChange: (value: string) => void;
@@ -62,16 +62,18 @@ export function TradeDetailsCard({
   onAccountChange,
   onTimeframeChange,
   onStrategyChange,
-  onTagsChange = () => {},
-  onTradeRatingChange = () => {}
+  onTagsChange = () => { },
+  onTradeRatingChange = () => { }
 }: TradeDetailsCardProps) {
   // Calculate all trade values using the custom hook
+  // Note: commission and fees are already separate values from the database
+  const totalFees = commission + fees;
   const calculatedValues = useTradeCalculations({
     entryPrice,
     exitPrice,
     stopLoss,
     quantity,
-    fees: commission + fees,
+    fees: totalFees,
     action,
     contractMultiplier
   });
@@ -100,7 +102,7 @@ export function TradeDetailsCard({
           netPnl={calculatedValues.netPnl}
           percentGain={calculatedValues.percentGain}
           grossPnl={calculatedValues.grossPnl}
-          fees={commission + fees}
+          fees={totalFees}
           tradeRisk={calculatedValues.tradeRisk}
           realizedR2R={calculatedValues.realizedR2R}
         />

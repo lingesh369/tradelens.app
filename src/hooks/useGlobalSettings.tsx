@@ -34,7 +34,7 @@ export const useGlobalSettings = () => {
     console.log('Fetching settings for profile ID:', profile.user_id);
 
     const { data, error } = await supabase
-      .from('settings')
+      .from('user_settings')
       .select('setting_id, user_id, time_zone, base_currency')
       .eq('user_id', profile.user_id)
       .maybeSingle();
@@ -54,7 +54,7 @@ export const useGlobalSettings = () => {
 
     // First check if settings already exist for this user
     const { data: existingSettings } = await supabase
-      .from('settings')
+      .from('user_settings')
       .select('setting_id')
       .eq('user_id', profile.user_id)
       .maybeSingle();
@@ -64,7 +64,7 @@ export const useGlobalSettings = () => {
     if (existingSettings) {
       // Update existing settings
       const { data, error } = await supabase
-        .from('settings')
+        .from('user_settings')
         .update({
           time_zone: values.time_zone,
           base_currency: values.base_currency,
@@ -78,7 +78,7 @@ export const useGlobalSettings = () => {
     } else {
       // Insert new settings
       const { data, error } = await supabase
-        .from('settings')
+        .from('user_settings')
         .insert([{
           user_id: profile.user_id,
           time_zone: values.time_zone,
@@ -124,7 +124,7 @@ export const useGlobalSettings = () => {
     const settings = settingsQuery.data;
     const timezone = settings?.time_zone ? getTimezoneByValue(settings.time_zone) : undefined;
     const currency = settings?.base_currency ? getCurrencyByCode(settings.base_currency) : undefined;
-    
+
     return {
       timezone,
       currency,

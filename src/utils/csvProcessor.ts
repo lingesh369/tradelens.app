@@ -618,6 +618,7 @@ export const processCSVData = async (
   return { data: processedData, warnings };
 };
 
+
 // Export processed data as formatted CSV
 export const exportFormattedCSV = (data: any[]) => {
   const columns = [
@@ -649,3 +650,194 @@ export const exportFormattedCSV = (data: any[]) => {
   link.click();
   document.body.removeChild(link);
 };
+
+// =====================================================
+// CSV IMPORT VALIDATION HELPERS
+// =====================================================
+
+// Valid market types as per database schema
+const VALID_MARKET_TYPES = ['stocks', 'forex', 'crypto', 'futures', 'options', 'commodities'] as const;
+export type ValidMarketType = typeof VALID_MARKET_TYPES[number];
+
+// Valid action types as per database schema
+const VALID_ACTIONS = ['long', 'short', 'buy', 'sell'] as const;
+export type ValidAction = typeof VALID_ACTIONS[number];
+
+// Valid status types as per database schema
+const VALID_STATUSES = ['open', 'partially_closed', 'closed', 'cancelled'] as const;
+export type ValidStatus = typeof VALID_STATUSES[number];
+
+/**
+ * Normalize and validate market type
+ * Converts common variations to database-compatible values
+ */
+export const normalizeMarketType = (marketType: string | null | undefined): ValidMarketType | null => {
+  if (!marketType) return null;
+  
+  const normalized = marketType.toLowerCase().trim();
+  
+  // Direct match
+  if (VALID_MARKET_TYPES.includes(normalized as ValidMarketType)) {
+    return normalized as ValidMarketType;
+  }
+  
+  // Handle common variations
+  const mappings: Record<string, ValidMarketType> = {
+    'stock': 'stocks',
+    'equity': 'stocks',
+    'equities': 'stocks',
+    'fx': 'forex',
+    'foreign exchange': 'forex',
+    'cryptocurrency': 'crypto',
+    'cryptocurrencies': 'crypto',
+    'bitcoin': 'crypto',
+    'future': 'futures',
+    'option': 'options',
+    'commodity': 'commodities',
+    'indices': 'stocks', // Map indices to stocks as fallback
+    'index': 'stocks'
+  };
+  
+  return mappings[normalized] || null;
+};
+
+/**
+ * Validate if market type is valid
+ */
+export const isValidMarketType = (marketType: string): boolean => {
+  return normalizeMarketType(marketType) !== null;
+};
+
+/**
+ * Normalize and validate action
+ * Handles both buy/sell and long/short terminology
+ */
+export const normalizeAction = (action: string | null | undefined): ValidAction | null => {
+  if (!action) return null;
+  
+  const normalized = action.toLowerCase().trim();
+  
+  // Direct match
+  if (VALID_ACTIONS.includes(normalized as ValidAction)) {
+    return normalized as ValidAction;
+  }
+  
+  // Handle variations
+  const mappings: Record<string, ValidAction> = {
+    'b': 'buy',
+    'bought': 'buy',
+    'long': 'buy', // Map long to buy for compatibility
+    's': 'sell',
+    'sold': 'sell',
+    'short': 'sell' // Map short to sell for compatibility
+  };
+  
+  return mappings[normalized] || null;
+};
+
+/**
+ * Validate if action is valid
+ */
+export const isValidAction = (action: string): boolean => {
+  return normalizeAction(action) !== null;
+};
+
+/**
+ * Calculate trade status based on exit data
+ */
+export const calculateTradeStatus = (
+  exitPrice: number | null | undefined,
+  exitTime: string | null | undefined,
+  quantity: number,
+  exitQuantity?: number
+): 'open' | 'partially_closed' | 'closed' => {
+  // If no exit price or exit time, trade is open
+  if (!exitPrice || !exitTime) {
+    return 'open';
+  }
+  
+  // If exit quantity is provided and less than total quantity, partially closed
+  if (exitQuantity !== undefined && exitQuantity > 0 && exitQuantity < quantity) {
+    return 'partially_closed';
+  }
+  
+  // If exit price and time exist, trade is closed
+  return 'closed';
+};
+
+/**
+ * Extract trade date from entry time
+ * Returns YYYY-MM-DD format for database DATE field
+ */
+export const extractTradeDate = (entryTime: string | Date): string | null => {
+  try {
+    const date = typeof entryTime === 'string' ? new Date(entryTime) : entryTime;
+    
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    // Format as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error('Error extracting trade date:', error);
+    return null;
+  }
+};
+
+/**
+ * Sanitize numeric value
+ * Ensures valid number or null
+ */
+export const sanitizeNumeric = (value: any): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  
+  const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
+  
+  return isNaN(num) ? null : num;
+};
+
+/**
+ * Validate required fields for CSV import
+ */
+export const validateTradeData = (data: any): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  // Required fields
+  if (!data.instrument || String(data.instrument).trim() === '') {
+    errors.push('instrument is required');
+  }
+  
+  if (!data.action) {
+    errors.push('action is required');
+  } else if (!isValidAction(data.action)) {
+    errors.push(`action must be one of: ${VALID_ACTIONS.join(', ')}`);
+  }
+  
+  if (!data.entry_time) {
+    errors.push('entry_time is required');
+  }
+  
+  if (!data.entry_price || sanitizeNumeric(data.entry_price) === null) {
+    errors.push('entry_price is required and must be a valid number');
+  }
+  
+  if (!data.quantity || sanitizeNumeric(data.quantity) === null) {
+    errors.push('quantity is required and must be a valid number');
+  }
+  
+  // Validate market type if provided
+  if (data.market_type && !isValidMarketType(data.market_type)) {
+    errors.push(`market_type must be one of: ${VALID_MARKET_TYPES.join(', ')}`);
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+};
+

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, FileUp, AlertCircle, CheckCircle2, Plus, FileText } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -39,7 +39,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [timezoneSearch, setTimezoneSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { accounts } = useAccounts();
   const { createTrade } = useTrades();
   const { toast } = useToast();
@@ -60,7 +60,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
     setShowAccountDialog(open);
     // The accounts will be refetched automatically due to real-time updates
   };
-  
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -82,12 +82,12 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
     try {
       // Parse the timestamp as a date in the CSV timezone
       const date = new Date(timestamp);
-      
+
       // Convert from CSV timezone to UTC first, then to user timezone
       // Since we're dealing with CSV data, we assume the timestamp is in the CSV timezone
       // We use fromZonedTime to convert from the CSV timezone to UTC
       const utcDate = fromZonedTime(date, fromTimezone);
-      
+
       // Return as ISO string which will be stored in UTC in the database
       return utcDate.toISOString();
     } catch (error) {
@@ -96,30 +96,30 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
       return new Date(timestamp).toISOString();
     }
   };
-  
+
   const validateCsvData = (data: any[]) => {
     if (data.length === 0) {
       throw new Error("The CSV file is empty.");
     }
-    
+
     // Update required headers based on the error message
     const requiredHeaders = [
-      "entry_time", "exit_time", "action", "quantity", "instrument", 
+      "entry_time", "exit_time", "action", "quantity", "instrument",
       "entry_price", "exit_price", "sl", "target", "commission", "fees"
     ];
-    
+
     const headers = Object.keys(data[0]);
-    
+
     // Check required headers
     for (const requiredHeader of requiredHeaders) {
       if (!headers.includes(requiredHeader)) {
         throw new Error(`Required header '${requiredHeader}' is missing from the CSV file.`);
       }
     }
-    
+
     return true;
   };
-  
+
   const processFile = async () => {
     if (!file || !accountId || !csvTimezone) {
       let errorMsg = "Please select ";
@@ -131,12 +131,12 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
       setError(errorMsg);
       return;
     }
-    
+
     setIsProcessing(true);
     setError(null);
     setSuccess(false);
     setProcessedRows(0);
-    
+
     try {
       Papa.parse(file, {
         header: true,
@@ -146,15 +146,46 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             if (results.errors && results.errors.length > 0) {
               throw new Error(`CSV parsing error: ${results.errors[0].message}`);
             }
-            
+
             const data = results.data as any[];
             validateCsvData(data);
-            
+
             setTotalRows(data.length);
             let processed = 0;
-            
-            for (const row of data) {
+            const errors: Array<{ row: number; errors: string[] }> = [];
+
+            for (let i = 0; i < data.length; i++) {
+              const row = data[i];
+              const rowNumber = i + 1;
+
               try {
+                // Skip completely empty rows
+                const isEmptyRow = Object.values(row).every(value =>
+                  value === null || value === undefined || String(value).trim() === ''
+                );
+
+                if (isEmptyRow) {
+                  console.log(`Skipping empty row ${rowNumber}`);
+                  continue;
+                }
+
+                // Import validation helpers from csvProcessor
+                const {
+                  normalizeMarketType,
+                  normalizeAction,
+                  calculateTradeStatus,
+                  extractTradeDate,
+                  sanitizeNumeric,
+                  validateTradeData
+                } = await import('@/utils/csvProcessor');
+
+                // Validate row data first
+                const validation = validateTradeData(row);
+                if (!validation.valid) {
+                  errors.push({ row: rowNumber, errors: validation.errors });
+                  continue; // Skip this row
+                }
+
                 // Parse entry date and convert timezone
                 let entryDate = new Date();
                 if (row.entry_time) {
@@ -163,9 +194,11 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
                     entryDate = new Date(convertedEntryTime);
                   } catch (e) {
                     console.error("Error parsing entry date:", e);
+                    errors.push({ row: rowNumber, errors: ['Invalid entry_time format'] });
+                    continue;
                   }
                 }
-                
+
                 // Parse exit date if exists and convert timezone
                 let exitDate = undefined;
                 if (row.exit_time) {
@@ -174,60 +207,123 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
                     exitDate = new Date(convertedExitTime);
                   } catch (e) {
                     console.error("Error parsing exit date:", e);
+                    // Don't fail the row, just log warning
                   }
                 }
-                
-                // Handle action (buy/sell)
-                const action = (row.action || "buy").toLowerCase();
-                
-                // Map market type
-                const marketType = row.market_type || "Stocks";
-                
-                // Create trade object with preserved decimal precision
+
+                // Normalize action (handles buy/sell/long/short)
+                const normalizedAction = normalizeAction(row.action);
+                if (!normalizedAction) {
+                  errors.push({ row: rowNumber, errors: [`Invalid action: ${row.action}`] });
+                  continue;
+                }
+
+                // Normalize market type
+                const normalizedMarketType = normalizeMarketType(row.market_type) || 'stocks';
+
+                // Sanitize numeric values
+                const quantity = sanitizeNumeric(row.quantity);
+                const entryPrice = sanitizeNumeric(row.entry_price);
+                const exitPrice = sanitizeNumeric(row.exit_price);
+
+                if (quantity === null || entryPrice === null) {
+                  errors.push({ row: rowNumber, errors: ['Invalid quantity or entry_price'] });
+                  continue;
+                }
+
+                // Calculate trade status
+                const status = calculateTradeStatus(exitPrice, exitDate?.toISOString(), quantity);
+
+                // Extract trade date
+                const tradeDate = extractTradeDate(entryDate);
+
+                // Create trade object with all required fields
                 const tradeData = {
-                  market_type: marketType,
+                  // Required fields
+                  market_type: normalizedMarketType,
                   account_id: accountId,
-                  instrument: row.instrument,
-                  contract: row.contract || null,
-                  action: action,
-                  quantity: parseFloat(row.quantity),
-                  entry_price: parseFloat(row.entry_price),
+                  instrument: row.instrument.trim(),
+                  action: normalizedAction,
+                  quantity: quantity,
+                  entry_price: entryPrice,
                   entry_time: entryDate.toISOString(),
-                  exit_price: row.exit_price ? parseFloat(row.exit_price) : null,
+
+                  // Status and date fields
+                  status: status,
+                  trade_date: tradeDate,
+
+                  // Optional exit fields
+                  exit_price: exitPrice,
                   exit_time: exitDate ? exitDate.toISOString() : null,
-                  // Ensure commission and fees are always positive
-                  commission: row.commission ? Math.abs(parseFloat(row.commission)) : 0,
-                  fees: row.fees ? Math.abs(parseFloat(row.fees)) : 0,
+
+                  // Optional fields with sanitization
+                  commission: sanitizeNumeric(row.commission) ? Math.abs(sanitizeNumeric(row.commission)!) : 0,
+                  fees: sanitizeNumeric(row.fees) ? Math.abs(sanitizeNumeric(row.fees)!) : 0,
+                  sl: sanitizeNumeric(row.sl),
+                  target: sanitizeNumeric(row.target),
+                  contract_multiplier: sanitizeNumeric(row.contract_multiplier) || 1,
+
+                  // Other optional fields
+                  contract: row.contract || null,
                   notes: row.notes || null,
                   strategy_id: row.strategy_id || null,
-                  sl: row.sl ? parseFloat(row.sl) : null,
-                  target: row.target ? parseFloat(row.target) : null,
                   chart_link: row.chart_link || null,
                   rating: row.rating ? Number(row.rating) : null,
-                  contract_multiplier: row.contract_multiplier ? parseFloat(row.contract_multiplier) : 1,
                 };
-                
+
+                // Log trade data for debugging
+                console.log(`Processing row ${rowNumber}:`, {
+                  instrument: tradeData.instrument,
+                  action: tradeData.action,
+                  market_type: tradeData.market_type,
+                  status: tradeData.status,
+                  trade_date: tradeData.trade_date
+                });
+
                 await createTrade(tradeData);
                 processed++;
                 setProcessedRows(processed);
-                
-              } catch (rowError) {
-                console.error("Error processing row:", rowError);
+
+              } catch (rowError: any) {
+                console.error(`Error processing row ${rowNumber}:`, rowError);
+                errors.push({
+                  row: rowNumber,
+                  errors: [rowError.message || 'Unknown error processing row']
+                });
               }
             }
-            
-            setSuccess(true);
-            toast({
-              title: "Import Successful",
-              description: `Successfully imported ${processed} trades with timezone conversion.`,
-            });
-            
+
+            // Report results
+            if (errors.length > 0) {
+              const errorSummary = errors.slice(0, 5).map(e =>
+                `Row ${e.row}: ${e.errors.join(', ')}`
+              ).join('\n');
+
+              const moreErrors = errors.length > 5 ? `\n...and ${errors.length - 5} more errors` : '';
+
+              setError(`Processed ${processed} of ${data.length} trades.\n\nErrors:\n${errorSummary}${moreErrors}`);
+
+              if (processed > 0) {
+                toast({
+                  title: "Partial Import",
+                  description: `Imported ${processed} trades. ${errors.length} rows had errors.`,
+                  variant: "default",
+                });
+              }
+            } else {
+              setSuccess(true);
+              toast({
+                title: "Import Successful",
+                description: `Successfully imported ${processed} trades with timezone conversion.`,
+              });
+            }
+
             if (processed > 0) {
               setTimeout(() => {
                 onSuccess();
               }, 2000);
             }
-            
+
           } catch (validateError: any) {
             setError(validateError.message);
           }
@@ -242,7 +338,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
       setIsProcessing(false);
     }
   };
-  
+
   const resetForm = () => {
     setFile(null);
     setError(null);
@@ -253,7 +349,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
       fileInputRef.current.value = "";
     }
   };
-  
+
   const downloadSampleCsv = () => {
     window.open("https://docs.google.com/spreadsheets/d/1S5tGMn_Qbn44pG9rAproHlUwZzTniMIbGPKuJe9619s/edit?usp=sharing", "_blank");
   };
@@ -261,7 +357,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
   const handleConvertCSV = () => {
     navigate("/csv");
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -272,8 +368,8 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={downloadSampleCsv}
             className="w-full sm:w-auto"
@@ -281,8 +377,8 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             <FileUp className="h-4 w-4 mr-2" />
             <span>Download Sample CSV</span>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={handleConvertCSV}
             className="w-full sm:w-auto"
@@ -292,7 +388,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
           </Button>
         </div>
       </div>
-      
+
       <div className="space-y-4">
         <div>
           <Label htmlFor="account">Account</Label>
@@ -306,8 +402,8 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((account) => (
-                  <SelectItem 
-                    key={account.account_id} 
+                  <SelectItem
+                    key={account.account_id}
                     value={account.account_id}
                   >
                     {account.account_name}
@@ -336,7 +432,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             <SelectTrigger>
               <SelectValue placeholder="Select CSV Time Zone" />
             </SelectTrigger>
-            <SelectContent 
+            <SelectContent
               className="max-h-60"
               searchable={true}
               searchPlaceholder="Search timezones..."
@@ -346,7 +442,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
               <SelectItem value={userTimezone}>
                 {userTimezoneOption?.label} (Your Current Time Zone Setting)
               </SelectItem>
-              
+
               {/* Show filtered timezones */}
               {filteredTimezones
                 .filter(tz => tz.value !== userTimezone)
@@ -361,7 +457,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             Timestamps in your CSV will be converted to your saved account time zone: {userTimezoneOption?.label}
           </p>
         </div>
-        
+
         <div>
           <Label htmlFor="csv-file">CSV File</Label>
           <Input
@@ -372,10 +468,10 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             onChange={handleFileChange}
           />
           <p className="text-xs text-muted-foreground mt-1">
-            File must be in CSV format with headers. Required headers: entry_time, exit_time, action, quantity, instrument, entry_price, exit_price, sl, target, commission, fees. Optional: contract_multiplier (defaults to 1). Commission and fees will automatically be converted to positive values. <span className="text-blue-500 cursor-pointer hover:underline" onClick={downloadSampleCsv}>Click here</span> to download a sample template.
+            File must be in CSV format with headers. <strong>Required headers:</strong> entry_time, exit_time, action, quantity, instrument, entry_price, exit_price, sl, target, commission, fees. <strong>Optional:</strong> market_type (stocks/forex/crypto/futures/options/commodities), contract_multiplier (defaults to 1). <strong>Action values:</strong> buy, sell, long, or short. Commission and fees will automatically be converted to positive values. Status and trade_date are calculated automatically. <span className="text-blue-500 cursor-pointer hover:underline" onClick={downloadSampleCsv}>Click here</span> to download a sample template.
           </p>
         </div>
-        
+
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -383,7 +479,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {success && (
           <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -393,7 +489,7 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
             </AlertDescription>
           </Alert>
         )}
-        
+
         {isProcessing && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -403,14 +499,14 @@ export function ImportTradesForm({ onSuccess }: ImportTradesFormProps) {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-primary h-2.5 rounded-full" 
+              <div
+                className="bg-primary h-2.5 rounded-full"
                 style={{ width: `${totalRows > 0 ? (processedRows / totalRows) * 100 : 0}%` }}
               ></div>
             </div>
           </div>
         )}
-        
+
         <div className="flex space-x-2">
           <Button
             onClick={processFile}
