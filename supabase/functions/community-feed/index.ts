@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    // Enrich with current user like status
+    // Enrich with current user like status and structure data for frontend
     const enrichedFeed = await Promise.all(
       (feed || []).map(async (trade) => {
         let isLikedByUser = false;
@@ -68,14 +68,34 @@ Deno.serve(async (req) => {
         }
 
         return {
-          ...trade,
+          trade_id: trade.trade_id,
+          instrument: trade.instrument,
+          action: trade.action,
+          entry_price: trade.entry_price,
+          exit_price: trade.exit_price,
+          entry_time: trade.entry_time,
+          exit_time: trade.exit_time,
+          status: trade.status,
+          main_image: trade.main_image,
+          notes: trade.notes,
+          created_at: trade.shared_at,
           likes_count: trade.like_count || 0,
           comments_count: trade.comment_count || 0,
           is_liked_by_user: isLikedByUser,
+          trade_metrics: {
+            net_pnl: trade.net_pnl || 0,
+            gross_pnl: trade.net_pnl || 0,
+            percent_gain: trade.percent_gain || 0,
+            trade_result: trade.trade_result || 'OPEN'
+          },
           app_users: {
-              username: trade.username,
-              avatar_url: trade.avatar_url,
-              bio: trade.bio
+            id: trade.user_id,
+            username: trade.username,
+            avatar_url: trade.avatar_url,
+            bio: trade.bio
+          },
+          accounts: {
+            name: 'Trading Account' // Placeholder since view doesn't include account info
           }
         };
       })

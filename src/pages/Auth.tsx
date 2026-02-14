@@ -249,7 +249,7 @@ const Auth = () => {
           
           // Wait a moment for trigger to complete, then redirect
           setTimeout(() => {
-            navigate("/dashboard");
+            navigate("/dashboard", { replace: true });
           }, 2000);
         } else {
           // Email confirmation is required via OTP
@@ -262,9 +262,11 @@ const Auth = () => {
           localStorage.setItem("pending_verification_email", values.email);
           localStorage.setItem("verification_type", "signup");
           
-          // Clear the form and redirect to OTP verification page
+          // Clear the form
           registerForm.reset();
-          navigate("/auth/verify-otp");
+          
+          // Use replace to prevent going back to the registration form
+          navigate("/auth/verify-otp", { replace: true });
         }
       }
       
@@ -303,7 +305,7 @@ const Auth = () => {
       localStorage.setItem("verification_type", "recovery");
       
       forgotPasswordForm.reset();
-      navigate("/auth/verify-otp");
+      navigate("/auth/verify-otp", { replace: true });
     } catch (error: any) {
       const friendlyError = getUserFriendlyError(error);
       setAuthError(friendlyError.description);

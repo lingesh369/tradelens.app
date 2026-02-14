@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Mail, CheckCircle, Loader2, TrendingUp, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserFriendlyError } from "@/lib/error-messages";
 
 const VerifyOTP = () => {
   const [searchParams] = useSearchParams();
@@ -28,12 +29,8 @@ const VerifyOTP = () => {
     if (urlEmail) setEmail(urlEmail);
     else if (storedEmail) setEmail(storedEmail);
     else {
-      toast({
-        title: "Error",
-        description: "No email found for verification. Please try again.",
-        variant: "destructive",
-      });
-      navigate("/auth/register");
+      // Don't show error immediately - user might be navigating here directly
+      // Only show error if they try to verify without email
       return;
     }
 
@@ -77,12 +74,23 @@ const VerifyOTP = () => {
   };
 
   const handleVerify = async () => {
+    // Check if email is available
+    if (!email) {
+      toast({
+        title: "Verification Error",
+        description: "We couldn't find your verification request. Please try signing up again.",
+        variant: "destructive",
+      });
+      navigate("/auth/register");
+      return;
+    }
+
     const otpCode = otp.join("");
     
     if (otpCode.length !== 6) {
       toast({
-        title: "Invalid code",
-        description: "Please enter all 6 digits",
+        title: "Invalid Code",
+        description: "Please enter all 6 digits of the verification code.",
         variant: "destructive",
       });
       return;
@@ -98,12 +106,13 @@ const VerifyOTP = () => {
 
       if (error) throw error;
 
-      // Clear stored data
+      // Clear stored data immediately
       localStorage.removeItem("pending_verification_email");
       localStorage.removeItem("verification_type");
 
+      // Show success message
       toast({
-        title: "Verification successful!",
+        title: "Verification Successful!",
         description: type === "signup" 
           ? "Your account has been verified. Welcome to TradeLens!" 
           : type === "recovery"
@@ -113,21 +122,19 @@ const VerifyOTP = () => {
 
       // Redirect based on type
       if (type === "signup") {
-        // Wait a moment for profile creation, then redirect
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1500);
+        // For signup, navigate immediately - auth state will handle the rest
+        navigate("/dashboard", { replace: true });
       } else if (type === "recovery") {
         // For password recovery, redirect to reset password page
-        navigate("/auth/reset-password");
+        navigate("/auth/reset-password", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error: any) {
-      console.error("OTP verification error:", error);
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Verification failed",
-        description: error.message || "Invalid or expired code. Please try again.",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
       setOtp(["", "", "", "", "", ""]);
@@ -138,6 +145,16 @@ const VerifyOTP = () => {
   };
 
   const handleResend = async () => {
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "We couldn't find your email. Please try signing up again.",
+        variant: "destructive",
+      });
+      navigate("/auth/register");
+      return;
+    }
+
     setResending(true);
     try {
       const { error } = await supabase.auth.resend({
@@ -148,16 +165,16 @@ const VerifyOTP = () => {
       if (error) throw error;
 
       toast({
-        title: "Code sent",
+        title: "Code Sent",
         description: "A new verification code has been sent to your email.",
       });
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } catch (error: any) {
-      console.error("Resend error:", error);
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to resend code",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {

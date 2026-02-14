@@ -79,12 +79,9 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
       return "--";
     }
 
-    // Use the exact same logic as ProfileHeader with large number formatting
-    if (calculatedStats) {
-      return `$${formatLargeNumber(value)}`;
-    } else {
-      return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
-    }
+    // Always format as currency with sign
+    const sign = value >= 0 ? '+' : '';
+    return `${sign}$${formatLargeNumber(value)}`;
   };
 
   return (

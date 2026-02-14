@@ -5,9 +5,9 @@
  * Usage: node scripts/replace-console-logs.js
  */
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -123,7 +123,7 @@ function processFile(filePath) {
   return { modified, replacementCount };
 }
 
-function main() {
+async function main() {
   console.log('🔍 Searching for console.log statements...\n');
   
   if (DRY_RUN) {
@@ -134,8 +134,8 @@ function main() {
   let modifiedFiles = 0;
   let totalReplacements = 0;
 
-  patterns.forEach(pattern => {
-    const files = glob.sync(pattern, { ignore: excludePatterns });
+  for (const pattern of patterns) {
+    const files = await glob(pattern, { ignore: excludePatterns });
     
     files.forEach(file => {
       if (shouldProcessFile(file)) {
@@ -147,7 +147,7 @@ function main() {
         }
       }
     });
-  });
+  }
 
   console.log('\n📊 Summary:');
   console.log(`   Total files scanned: ${totalFiles}`);

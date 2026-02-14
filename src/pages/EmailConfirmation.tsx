@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Mail, CheckCircle, Loader2, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserFriendlyError } from "@/lib/error-messages";
 
 const EmailConfirmation = () => {
   const [searchParams] = useSearchParams();
@@ -43,8 +44,8 @@ const EmailConfirmation = () => {
       const email = localStorage.getItem("pending_confirmation_email");
       if (!email) {
         toast({
-          title: "Error",
-          description: "No pending confirmation found. Please try signing up again.",
+          title: "Verification Error",
+          description: "We couldn't find your verification request. Please try signing up again.",
           variant: "destructive",
         });
         navigate("/auth/register");
@@ -60,14 +61,14 @@ const EmailConfirmation = () => {
 
       setResent(true);
       toast({
-        title: "Email sent",
+        title: "Email Sent",
         description: "Check your inbox for the confirmation link.",
       });
     } catch (error: any) {
-      console.error("Resend error:", error);
+      const friendlyError = getUserFriendlyError(error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to resend confirmation email",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
