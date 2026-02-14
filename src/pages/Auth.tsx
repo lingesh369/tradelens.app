@@ -23,6 +23,8 @@ import { FcGoogle } from "react-icons/fc";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { UsernameInput } from "@/components/ui/username-input";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
+import { validatePassword } from "@/lib/password-validation";
 
 // Form schemas
 const loginSchema = z.object({
@@ -32,7 +34,12 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  password: z.string()
+    .min(12, { message: "Password must be at least 12 characters" })
+    .regex(/[A-Z]/, { message: "Must contain at least one uppercase letter" })
+    .regex(/[a-z]/, { message: "Must contain at least one lowercase letter" })
+    .regex(/[0-9]/, { message: "Must contain at least one number" })
+    .regex(/[^A-Za-z0-9]/, { message: "Must contain at least one special character" }),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   username: z.string()
@@ -46,8 +53,13 @@ const forgotPasswordSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  password: z.string()
+    .min(12, { message: "Password must be at least 12 characters" })
+    .regex(/[A-Z]/, { message: "Must contain at least one uppercase letter" })
+    .regex(/[a-z]/, { message: "Must contain at least one lowercase letter" })
+    .regex(/[0-9]/, { message: "Must contain at least one number" })
+    .regex(/[^A-Za-z0-9]/, { message: "Must contain at least one special character" }),
+  confirmPassword: z.string().min(12, { message: "Password must be at least 12 characters" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],

@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { uploadImage } from "@/integrations/supabase/storage";
 import { RichTextEditor } from "@/components/notes/RichTextEditor";
+import DOMPurify from "dompurify";
 
 interface TradeAnalysisCardProps {
   tradeId: string;
@@ -454,7 +455,12 @@ export function TradeAnalysisCard({
               {isReadOnly ? (
                 <div 
                   className="w-full min-h-[200px] p-4 border rounded-md prose prose-sm max-w-none dark:prose-invert bg-muted/10"
-                  dangerouslySetInnerHTML={{ __html: notes || '<p class="text-muted-foreground">No notes available</p>' }}
+                  dangerouslySetInnerHTML={{ 
+                    __html: DOMPurify.sanitize(notes || '<p class="text-muted-foreground">No notes available</p>', {
+                      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'blockquote', 'code', 'pre'],
+                      ALLOWED_ATTR: ['href', 'target', 'rel', 'class']
+                    })
+                  }}
                 />
               ) : (
                 <RichTextEditor

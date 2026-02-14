@@ -48,14 +48,37 @@ Deno.serve(async (req) => {
 
 async function handleNowPayments(req: Request, supabase: any, signature: string) {
   const secret = Deno.env.get('NOWPAYMENTS_IPN_SECRET');
-  if (!secret) throw new Error('NowPayments secret missing');
+  if (!secret) {
+    console.error('NOWPAYMENTS_IPN_SECRET not configured');
+    throw new Error('NowPayments secret not configured');
+  }
 
-  const text = await req.text();
+  const rawBody = await req.text();
   
-  // Verify signature (Simplified for brevity, strictly should use HMAC)
-  // In production, implement proper HMAC SHA-512 verification here
+  // Proper HMAC SHA-512 verification
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(rawBody);
   
-  const data = JSON.parse(text);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-512' },
+    false,
+    ['sign']
+  );
+  
+  const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const calculatedSignature = Array.from(new Uint8Array(signatureBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  if (signature !== calculatedSignature) {
+    console.error('Invalid NowPayments webhook signature');
+    throw new Error('Invalid webhook signature');
+  }
+  
+  const data = JSON.parse(rawBody);
   console.log('NowPayments Webhook:', data);
 
   if (data.payment_status === 'finished' || data.payment_status === 'confirmed') {
@@ -71,8 +94,38 @@ async function handleNowPayments(req: Request, supabase: any, signature: string)
 }
 
 async function handleCashfree(req: Request, supabase: any, signature: string) {
-    // Verify signature logic here (omitted for brevity)
-    const body = await req.json();
+    const secret = Deno.env.get('CASHFREE_SECRET_KEY');
+    if (!secret) {
+      console.error('CASHFREE_SECRET_KEY not configured');
+      throw new Error('Cashfree secret not configured');
+    }
+
+    const timestamp = req.headers.get('x-webhook-timestamp') || '';
+    const rawBody = await req.text();
+    
+    // Verify Cashfree signature
+    const signaturePayload = timestamp + rawBody;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(signaturePayload);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+    const calculatedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+    
+    if (signature !== calculatedSignature) {
+      console.error('Invalid Cashfree webhook signature');
+      throw new Error('Invalid webhook signature');
+    }
+
+    const body = JSON.parse(rawBody);
     console.log('Cashfree Webhook:', body);
 
     if (body.type === 'PAYMENT_SUCCESS_WEBHOOK') {

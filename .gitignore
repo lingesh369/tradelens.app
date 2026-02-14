@@ -41,3 +41,6 @@ supabase_status.json
 test-webhook-signup.js
 test-edge-function-direct.js
 monitor-webhook.js
+
+# MCP Config with Secrets
+.mcp-config.json

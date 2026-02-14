@@ -4,10 +4,10 @@
       "command": "npx",
       "args": [
         "@supabase/mcp-server-supabase@latest",
-        "--project-ref=tzhhxeyisppkzyjacodu"
+        "--project-ref=YOUR_PROJECT_REF"
       ],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+        "SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_ACCESS_TOKEN"
       }
     }
   }
