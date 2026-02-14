@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UsernameInput } from "@/components/ui/username-input";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { validatePassword } from "@/lib/password-validation";
+import { getUserFriendlyError } from "@/lib/error-messages";
 
 // Form schemas
 const loginSchema = z.object({
@@ -189,11 +190,11 @@ const Auth = () => {
       });
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Auth error:", error);
-      setAuthError(error.message || "An unexpected error occurred");
+      const friendlyError = getUserFriendlyError(error);
+      setAuthError(friendlyError.description);
       toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
@@ -206,8 +207,6 @@ const Auth = () => {
     setAuthError(null);
     
     try {
-      console.log("Starting signup process...");
-      
       // Simple signup - let database trigger handle profile creation
       const { data, error } = await supabase.auth.signUp({
         email: values.email,
@@ -224,31 +223,22 @@ const Auth = () => {
       });
       
       if (error) {
-        console.error("Signup failed:", error);
+        const friendlyError = getUserFriendlyError(error);
+        setAuthError(friendlyError.description);
+        toast({
+          title: friendlyError.title,
+          description: friendlyError.description,
+          variant: "destructive",
+        });
         
+        // If account exists, switch to login view
         if (error.message.includes('already registered')) {
-          setAuthError("An account with this email already exists. Please sign in instead.");
-          toast({
-            title: "Account already exists",
-            description: "Please sign in with your existing account.",
-            variant: "destructive",
-          });
           setView("login");
-          return;
-        } else {
-          setAuthError(error.message);
-          toast({
-            title: "Registration Error",
-            description: error.message,
-            variant: "destructive",
-          });
         }
         return;
       }
 
       if (data.user) {
-        console.log("User created successfully, verification code sent");
-        
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
           // User is immediately confirmed (OAuth or confirmations disabled)
@@ -264,8 +254,8 @@ const Auth = () => {
         } else {
           // Email confirmation is required via OTP
           toast({
-            title: "Check your email",
-            description: "We've sent a 6-digit verification code to your email.",
+            title: "Check Your Email",
+            description: "We've sent a 6-digit verification code to your email address.",
           });
           
           // Store email and type for OTP verification
@@ -279,11 +269,11 @@ const Auth = () => {
       }
       
     } catch (error: any) {
-      console.error("Unexpected signup error:", error);
-      setAuthError("An unexpected error occurred during signup. Please try again.");
+      const friendlyError = getUserFriendlyError(error);
+      setAuthError(friendlyError.description);
       toast({
-        title: "Registration Error", 
-        description: "An unexpected error occurred. Please try again.",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
@@ -315,11 +305,11 @@ const Auth = () => {
       forgotPasswordForm.reset();
       navigate("/auth/verify-otp");
     } catch (error: any) {
-      console.error("Reset password error:", error);
-      setAuthError(error.message || "Failed to send reset password code");
+      const friendlyError = getUserFriendlyError(error);
+      setAuthError(friendlyError.description);
       toast({
-        title: "Error",
-        description: error.message || "Failed to send reset password code",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
@@ -343,11 +333,11 @@ const Auth = () => {
       resetPasswordForm.reset();
       setView("login");
     } catch (error: any) {
-      console.error("Update password error:", error);
-      setAuthError(error.message || "Failed to update password");
+      const friendlyError = getUserFriendlyError(error);
+      setAuthError(friendlyError.description);
       toast({
-        title: "Error",
-        description: error.message || "Failed to update password",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
     } finally {
@@ -372,11 +362,11 @@ const Auth = () => {
       
       // The redirect will happen automatically
     } catch (error: any) {
-      console.error("Google auth error:", error);
-      setAuthError(error.message || "An unexpected error occurred with Google sign in");
+      const friendlyError = getUserFriendlyError(error);
+      setAuthError(friendlyError.description);
       toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred with Google sign in",
+        title: friendlyError.title,
+        description: friendlyError.description,
         variant: "destructive",
       });
       setLoading(false);
