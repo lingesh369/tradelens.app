@@ -48,8 +48,8 @@ export function OtherTagsSection({ trades, dateRange, settings }: OtherTagsSecti
     
     // Initialize map with all other tags
     otherTags.forEach(tag => {
-      tagMap.set(tag.tag_id, {
-        tagName: tag.tag_name,
+      tagMap.set(tag.id, {
+        tagName: tag.name,
         netProfit: 0,
         totalProfit: 0,
         totalLoss: 0,
@@ -81,7 +81,7 @@ export function OtherTagsSection({ trades, dateRange, settings }: OtherTagsSecti
       
       // Check if any of the trade's tags are other tags
       tradeTags.forEach(tagId => {
-        const otherTag = otherTags.find(tag => tag.tag_id === tagId);
+        const otherTag = otherTags.find(tag => tag.id === tagId);
         if (otherTag) {
           const stats = tagMap.get(tagId);
           if (stats) {

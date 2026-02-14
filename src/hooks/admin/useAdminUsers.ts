@@ -59,7 +59,7 @@ const fetchEnhancedUserData = async (): Promise<User[]> => {
     .from('app_users')
     .select(`
       *,
-      user_subscriptions_new!inner (
+      user_subscriptions!inner (
         next_billing_date,
         end_date,
         subscription_plans!inner (
@@ -110,7 +110,7 @@ const fetchEnhancedUserData = async (): Promise<User[]> => {
   // Process and merge all data
   const processedUsers = users.map(user => {
     const enhanced = enhancedUsers?.find(eu => eu.id === user.user_id);
-    const subscription = enhanced?.user_subscriptions_new?.[0];
+    const subscription = enhanced?.user_subscriptions?.[0];
     const settings = enhanced?.user_settings?.[0]?.settings_data as any;
     
     // Calculate trading metrics
@@ -156,7 +156,7 @@ const fetchUserMetrics = async () => {
     .eq('user_status', 'Active');
 
   const { data: subscriptions } = await supabase
-    .from('user_subscriptions_new')
+    .from('user_subscriptions')
     .select(`
       subscription_plans!inner (name)
     `)
@@ -179,7 +179,7 @@ const fetchUserMetrics = async () => {
 
   // Calculate paid conversions (users who moved from trial to paid in last 30 days)
   const { data: paidConversions } = await supabase
-    .from('user_subscriptions_new')
+    .from('user_subscriptions')
     .select(`
       created_at,
       subscription_plans!inner (name)

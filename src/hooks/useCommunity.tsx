@@ -24,24 +24,24 @@ interface CommunityTrade {
   exit_time?: string;
   notes?: string;
   trade_metrics?: {
-    net_p_and_l: number;
-    gross_p_and_l: number;
+    net_pnl: number;
+    gross_pnl: number;
     percent_gain: number;
-    trade_outcome: string;
-    r2r?: number;
+    trade_result: string;
+    r_multiple?: number;
     trade_duration?: string;
   };
   app_users: {
     username: string;
     first_name: string;
     last_name: string;
-    profile_picture_url?: string;
+    avatar_url?: string;
   };
   accounts: {
-    account_name: string;
+    name: string;
   };
   strategies?: {
-    strategy_name: string;
+    name: string;
   };
   likes_count: number;
   comments_count: number;
@@ -54,12 +54,24 @@ interface TraderProfile {
   username: string;
   first_name: string;
   last_name: string;
-  profile_picture_url?: string;
+  avatar_url?: string;
   bio?: string;
+  about_content?: string;
+  trading_experience?: string;
+  risk_tolerance?: string;
+  preferred_markets?: string[];
+  location?: string;
+  website_url?: string;
+  social_links?: any;
+  stats_visibility?: any;
+  privacy_settings?: any;
+  joined_at?: string;
+  auth_id?: string;
   followers_count: number;
+  following_count: number;
   win_rate: number;
   total_pnl: number;
-  profit_factor: number;
+  profit_factor?: number;
   trades_count: number;
   badge?: string;
   is_followed_by_user: boolean;
@@ -102,7 +114,7 @@ export const useCommunityAction = () => {
       queryClient.invalidateQueries({ queryKey: ['community-feed'] });
       queryClient.invalidateQueries({ queryKey: ['community-traders'] });
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-      
+
       // Also invalidate trader profile if it's a follow/unfollow action
       if ((variables.action === 'follow' || variables.action === 'unfollow') && variables.userId) {
         queryClient.invalidateQueries({ queryKey: ['traderProfile'] });
@@ -135,11 +147,11 @@ export const useCommunityFeed = (
           offset
         }
       });
-      
+
       if (error) {
         throw new Error(`Failed to fetch community feed: ${error.message}`);
       }
-      
+
       return data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -165,11 +177,11 @@ export const useCommunityTraders = (
           offset
         }
       });
-      
+
       if (error) {
         throw new Error(`Failed to fetch community traders: ${error.message}`);
       }
-      
+
       return data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -177,132 +189,22 @@ export const useCommunityTraders = (
 };
 
 export const useTraderProfile = (username: string) => {
-  return useQuery({
+  return useQuery<{ data: TraderProfile }>({
     queryKey: ['traderProfile', username],
     queryFn: async () => {
       if (!username) {
         throw new Error('Username is required');
       }
 
-      // First, get the user by username
-      const { data: userData, error: userError } = await supabase
-        .from('app_users')
-        .select('*')
-        .eq('username', username)
-        .single();
+      const { data, error } = await supabase.functions.invoke('trader-profile', {
+        body: { username }
+      });
 
-      if (userError) {
-        throw userError;
+      if (error) {
+        throw new Error(`Failed to fetch trader profile: ${error.message}`);
       }
 
-      if (!userData) {
-        throw new Error('User not found');
-      }
-
-      // Then get the trader profile
-      const { data: traderData, error: traderError } = await supabase
-        .from('trader_profiles')
-        .select('*')
-        .eq('user_id', userData.user_id)
-        .single();
-
-      if (traderError) {
-        throw traderError;
-      }
-
-      // Get follow status if authenticated
-      let isFollowed = false;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: currentUserData } = await supabase
-          .from('app_users')
-          .select('user_id')
-          .eq('auth_id', user.id)
-          .single();
-
-        if (currentUserData) {
-          const { data: followData } = await supabase
-            .from('community_follows')
-            .select('id')
-            .eq('follower_id', currentUserData.user_id)
-            .eq('following_id', userData.user_id)
-            .single();
-          
-          isFollowed = !!followData;
-        }
-      }
-
-      // Get follower count
-      const { data: followers } = await supabase
-        .from('community_follows')
-        .select('id')
-        .eq('following_id', userData.user_id);
-
-      // Get trading stats from shared trades
-      const { data: trades } = await supabase
-        .from('trades')
-        .select(`
-          *,
-          trade_metrics!inner(net_p_and_l, trade_outcome)
-        `)
-        .eq('user_id', userData.user_id)
-        .eq('is_shared', true);
-
-      let winRate = 0;
-      let totalPnL = 0;
-      let profitFactor = 1;
-      let tradesCount = 0;
-
-      if (trades && trades.length > 0) {
-        tradesCount = trades.length;
-        const winningTrades = trades.filter(trade => 
-          trade.trade_metrics?.trade_outcome === 'WIN').length;
-        winRate = (winningTrades / trades.length) * 100;
-
-        totalPnL = trades.reduce((sum, trade) => 
-          sum + (trade.trade_metrics?.net_p_and_l || 0), 0);
-
-        // Calculate profit factor
-        const profitableTrades = trades.filter(trade => 
-          (trade.trade_metrics?.net_p_and_l || 0) > 0);
-        const losingTrades = trades.filter(trade => 
-          (trade.trade_metrics?.net_p_and_l || 0) < 0);
-        
-        const totalProfit = profitableTrades.reduce((sum, trade) => 
-          sum + (trade.trade_metrics?.net_p_and_l || 0), 0);
-        const totalLoss = Math.abs(losingTrades.reduce((sum, trade) => 
-          sum + (trade.trade_metrics?.net_p_and_l || 0), 0));
-        
-        profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? 999 : 1;
-      }
-
-      // Get current user's subscription plan for badge
-      const { data: subscription } = await supabase
-        .from('user_subscriptions_new')
-        .select(`
-          subscription_plans!inner(name)
-        `)
-        .eq('user_id', userData.user_id)
-        .eq('status', 'active')
-        .single();
-
-      const planName = subscription?.subscription_plans?.name || null;
-      let badge = null;
-      if (planName === 'Pro Plan') badge = 'Pro';
-      else if (planName === 'Starter Plan') badge = 'Starter';
-
-      return {
-        ...traderData,
-        app_users: userData,
-        user_id: userData.user_id,
-        is_followed_by_user: isFollowed,
-        followers_count: followers?.length || 0,
-        win_rate: winRate,
-        total_pnl: totalPnL,
-        profit_factor: profitFactor,
-        trades_count: tradesCount,
-        badge: badge
-      };
+      return data;
     },
     enabled: !!username,
   });
@@ -341,38 +243,25 @@ export const useCreateTraderProfile = () => {
   });
 };
 
-// Hook to fetch shared trades for a specific trader - UPDATED VERSION
 export const useTraderSharedTrades = (userId: string, enabled = true) => {
   return useQuery({
     queryKey: ['trader-shared-trades', userId],
     queryFn: async () => {
-      console.log('Fetching trader shared trades for userId:', userId);
-      
-      // Get the current session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Create URL with query parameters as expected by the Edge Function
-      const baseUrl = supabase.supabaseUrl;
-      const functionUrl = `${baseUrl}/functions/v1/trader-shared-trades?userId=${encodeURIComponent(userId)}&limit=50&offset=0`;
-      
-      const response = await fetch(functionUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'apikey': supabase.supabaseKey,
-          'Content-Type': 'application/json'
+      // Use community-feed with userId filter
+      const { data, error } = await supabase.functions.invoke('community-feed', {
+        body: {
+          sortBy: 'recent',
+          userId: userId, // Filter by specific user
+          limit: 50,
+          offset: 0
         }
       });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to fetch trader shared trades:', errorText);
-        throw new Error(`Failed to fetch trader shared trades: ${response.status} ${response.statusText}`);
+
+      if (error) {
+        throw new Error(`Failed to fetch trader shared trades: ${error.message}`);
       }
-      
-      const result = await response.json();
-      console.log('Trader shared trades result:', result);
-      return result?.data || [];
+
+      return data?.data || [];
     },
     enabled: enabled && !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -400,23 +289,19 @@ export const usePinnedTrades = (userId: string, enabled = true) => {
 // Hook to manage pinned trades
 export const usePinTrade = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ tradeId, pin }: { tradeId: string; pin: boolean }) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      const { data: userIdData } = await supabase.rpc('get_user_id_from_auth', {
-        auth_user_id: userData.user.id
-      });
-
-      if (!userIdData) throw new Error('User not found');
+      const currentUserId = userData.user.id;
 
       if (pin) {
         const { data, error } = await supabase
           .from('pinned_trades')
           .insert({
-            user_id: userIdData,
+            user_id: currentUserId,
             trade_id: tradeId
           })
           .select();
@@ -427,7 +312,7 @@ export const usePinTrade = () => {
         const { error } = await supabase
           .from('pinned_trades')
           .delete()
-          .eq('user_id', userIdData)
+          .eq('user_id', currentUserId)
           .eq('trade_id', tradeId);
 
         if (error) throw error;

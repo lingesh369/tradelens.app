@@ -39,7 +39,7 @@ export const useProfileNotifications = () => {
           *,
           source_user:app_users!notifications_source_user_id_fkey(id, username, first_name, last_name, profile_picture_url)
         `)
-        .eq('user_id', user.user_id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -63,8 +63,8 @@ export const useProfileNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(prev => 
-        prev.map(n => 
+      setNotifications(prev =>
+        prev.map(n =>
           n.id === notificationId ? { ...n, status: 'read' as const } : n
         )
       );
@@ -81,12 +81,12 @@ export const useProfileNotifications = () => {
       const { error } = await (supabase as any)
         .from('notifications')
         .update({ status: 'read' })
-        .eq('user_id', user.user_id)
+        .eq('user_id', user.id)
         .eq('status', 'unread');
 
       if (error) throw error;
 
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => ({ ...n, status: 'read' as const }))
       );
       setUnreadCount(0);
@@ -106,7 +106,7 @@ export const useProfileNotifications = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${user.user_id}`
+        filter: `user_id=eq.${user.id}`
       }, () => {
         fetchNotifications();
       })

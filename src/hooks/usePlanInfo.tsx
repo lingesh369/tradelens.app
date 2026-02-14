@@ -22,40 +22,41 @@ export const usePlanInfo = () => {
           
           // Get subscription details (both active and expired)
           const { data: subData, error: subError } = await supabase
-            .from('user_subscriptions_new')
+            .from('user_subscriptions')
             .select(`
               status,
-              end_date,
+              current_period_end,
               subscription_plans (name)
             `)
             .eq('user_id', userId)
-            .in('status', ['active', 'expired'])
+            .in('status', ['active', 'trialing', 'expired'])
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
             
           if (subError) {
+            console.error('Error fetching subscription:', subError);
             // Fallback for new users - give them a 7-day free trial
             setPlanInfo({ name: 'Free Trial', isExpired: false, daysLeft: 7 });
             return;
           }
           
-          const planName = subData?.subscription_plans?.name || 'Unknown';
+          const planName = subData?.subscription_plans?.name || 'Free Trial';
           const now = new Date();
           let daysLeft = 0;
           let isExpired = false;
           
-          // Check if subscription is expired based on status and end_date
-          if (subData?.status === 'expired') {
+          // Check if subscription is expired based on status and current_period_end
+          if (subData?.status === 'expired' || subData?.status === 'cancelled') {
             isExpired = true;
             daysLeft = 0;
-          } else if (subData?.end_date) {
-            const endDate = new Date(subData.end_date);
+          } else if (subData?.current_period_end) {
+            const endDate = new Date(subData.current_period_end);
             daysLeft = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
             // Mark as expired if end date is in the past
             isExpired = endDate < now;
           } else {
-            // If no end_date is set, treat as free trial for new users
+            // If no current_period_end is set, treat as free trial for new users
             isExpired = false;
             daysLeft = 7;
           }

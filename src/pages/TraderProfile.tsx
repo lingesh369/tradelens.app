@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Heart, 
-  MessageCircle, 
-  Settings, 
-  Share2, 
+import {
+  Heart,
+  MessageCircle,
+  Settings,
+  Share2,
   ExternalLink,
   User,
   TrendingUp,
@@ -19,13 +19,13 @@ import {
   Bell,
   Edit
 } from "lucide-react";
-import { 
-  Breadcrumb, 
-  BreadcrumbList, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { useTraderProfile, useCommunityAction, useTraderSharedTrades, usePinnedTrades, usePinTrade } from "@/hooks/useCommunity";
 import { useAuth } from "@/context/AuthContext";
@@ -55,70 +55,70 @@ export const TraderProfile = () => {
   const [showChat, setShowChat] = useState(false);
   const [chatWithUserId, setChatWithUserId] = useState<string | undefined>();
   const { toast } = useToast();
-  
+
   const { data: traderData, isLoading, error, refetch } = useTraderProfile(username || '');
-  const { data: sharedTrades, isLoading: isLoadingSharedTrades, error: sharedTradesError, refetch: refetchSharedTrades } = useTraderSharedTrades(traderData?.user_id || '', !!traderData?.user_id);
-  const { data: pinnedTrades, refetch: refetchPinnedTrades } = usePinnedTrades(traderData?.user_id || '', !!traderData?.user_id);
-  
+  const { data: sharedTrades, isLoading: isLoadingSharedTrades, error: sharedTradesError, refetch: refetchSharedTrades } = useTraderSharedTrades(traderData?.data?.user_id || '', !!traderData?.data?.user_id);
+  const { data: pinnedTrades, refetch: refetchPinnedTrades } = usePinnedTrades(traderData?.data?.user_id || '', !!traderData?.data?.user_id);
+
   // Get date range from privacy settings for analytics
-  const privacySettings = traderData?.privacy_settings || {};
+  const privacySettings = traderData?.data?.privacy_settings || {};
   const analyticsDateRange = privacySettings.date_range ? (
-     privacySettings.date_range.from && privacySettings.date_range.to ? {
-       from: new Date(privacySettings.date_range.from),
-       to: new Date(privacySettings.date_range.to)
-     } : privacySettings.date_range.preset ? (
-       () => {
-         const presetRange = getPresetDateRange(privacySettings.date_range.preset);
-         return {
-           from: presetRange.from,
-           to: presetRange.to
-         };
-       }
-     )() : undefined
-   ) : undefined;
-  
+    privacySettings.date_range.from && privacySettings.date_range.to ? {
+      from: new Date(privacySettings.date_range.from),
+      to: new Date(privacySettings.date_range.to)
+    } : privacySettings.date_range.preset ? (
+      () => {
+        const presetRange = getPresetDateRange(privacySettings.date_range.preset);
+        return {
+          from: presetRange.from,
+          to: presetRange.to
+        };
+      }
+    )() : undefined
+  ) : undefined;
+
   // Fetch analytics data for all trades (respecting privacy settings)
   const { data: analyticsData, isLoading: isLoadingAnalytics, error: analyticsError } = usePublicProfileAnalytics(
-    traderData?.user_id || '', 
+    traderData?.data?.user_id || '',
     analyticsDateRange,
-    !!traderData?.user_id
+    !!traderData?.data?.user_id
   );
-  
+
   // Fetch all trades for charts and calendar (respecting privacy settings)
   const publicTradesPrivacySettings = privacySettings.account_ids || privacySettings.date_range ? {
     selectedAccountIds: privacySettings.account_ids || [],
     dateRange: analyticsDateRange
   } : undefined;
-  
-  const { 
-    trades: allTradesForCharts, 
-    isLoading: isLoadingAllTrades, 
-    hasRealTrades: hasAllRealTrades 
+
+  const {
+    trades: allTradesForCharts,
+    isLoading: isLoadingAllTrades,
+    hasRealTrades: hasAllRealTrades
   } = usePublicTraderTrades({
-    userId: traderData?.user_id || '',
+    userId: traderData?.data?.user_id || '',
     privacySettings: publicTradesPrivacySettings,
-    enabled: !!traderData?.user_id
+    enabled: !!traderData?.data?.user_id
   });
-  
+
   const communityAction = useCommunityAction();
   const pinTrade = usePinTrade();
 
   const handleFollow = async () => {
     if (!traderData) return;
-    
+
     try {
       await communityAction.mutateAsync({
-        action: traderData.is_followed_by_user ? 'unfollow' : 'follow',
-        userId: traderData.user_id
+        action: traderData.data.is_followed_by_user ? 'unfollow' : 'follow',
+        userId: traderData.data.user_id
       });
 
       // Create notification for follow action (if following, not unfollowing)
-      if (!traderData.is_followed_by_user && user) {
+      if (!traderData.data.is_followed_by_user && user) {
         if (appUserId) {
           await (supabase as any)
             .from('notifications')
             .insert({
-              user_id: traderData.user_id,
+              user_id: traderData.data.user_id,
               type: 'follow',
               source_user_id: appUserId,
               title: 'New Follower',
@@ -132,8 +132,8 @@ export const TraderProfile = () => {
   };
 
   const handleMessage = () => {
-    if (!traderData?.user_id) return;
-    setChatWithUserId(traderData.user_id);
+    if (!traderData?.data?.user_id) return;
+    setChatWithUserId(traderData.data.user_id);
     setShowChat(true);
   };
 
@@ -151,11 +151,11 @@ export const TraderProfile = () => {
 
   const handleSaveAboutContent = async (content: any[], bio: string) => {
     try {
-      if (!traderData?.user_id) {
+      if (!traderData?.data?.user_id) {
         throw new Error('User ID not found');
       }
-      
-      await saveProfileAbout(traderData.user_id, bio, content);
+
+      await saveProfileAbout(traderData.data.user_id, bio, content);
 
       toast({
         title: "About content updated",
@@ -178,7 +178,7 @@ export const TraderProfile = () => {
     try {
       await pinTrade.mutateAsync({ tradeId, pin });
       await Promise.all([refetchSharedTrades(), refetchPinnedTrades()]);
-      
+
       toast({
         title: pin ? "Trade pinned" : "Trade unpinned",
         description: pin ? "This trade is now pinned to the top of your profile." : "This trade has been unpinned.",
@@ -193,26 +193,27 @@ export const TraderProfile = () => {
   };
 
   // Fix owner detection: compare auth IDs  
-  const isOwner = user && traderData && user.id === traderData.app_users?.auth_id;
-  
+  const isOwner = user && traderData?.data && user.id === traderData.data.auth_id;
+
   // Create a combined list of trades with pinned ones at the top
   const getCombinedSharedTrades = () => {
     if (!sharedTrades || !Array.isArray(sharedTrades)) {
       return [];
     }
-    
+
     const pinnedTradeIds = new Set(pinnedTrades?.map(pin => pin.trade_id) || []);
     const pinnedTradesData = sharedTrades.filter(trade => pinnedTradeIds.has(trade.trade_id));
     const unpinnedTradesData = sharedTrades.filter(trade => !pinnedTradeIds.has(trade.trade_id));
-    
+
     return [...pinnedTradesData, ...unpinnedTradesData];
   };
 
   // Convert shared trades to Trade format for stats calculation
   const convertToTradeFormat = (sharedTrades: any[]): Trade[] => {
     if (!Array.isArray(sharedTrades)) return [];
-    
+
     return sharedTrades.map(trade => ({
+      id: trade.trade_id, // Required by Trade interface
       trade_id: trade.trade_id,
       user_id: trade.user_id || '',
       instrument: trade.instrument,
@@ -245,7 +246,7 @@ export const TraderProfile = () => {
       trade_rating: trade.trade_rating,
       remaining_quantity: trade.remaining_quantity,
       parent_trade_id: trade.parent_trade_id,
-      status: (trade.status === 'open' || trade.status === 'partially_closed' || trade.status === 'closed') 
+      status: (trade.status === 'open' || trade.status === 'partially_closed' || trade.status === 'closed')
         ? trade.status as 'open' | 'partially_closed' | 'closed'
         : 'closed',
       total_exit_quantity: trade.total_exit_quantity,
@@ -307,7 +308,7 @@ export const TraderProfile = () => {
   if (!traderData) {
     // Check if this is the current user trying to access their own profile
     const isCurrentUserProfile = user && username === user.user_metadata?.username;
-    
+
     if (isCurrentUserProfile) {
       // Auto-create trader profile for current user
       const createTraderProfile = async () => {
@@ -324,16 +325,19 @@ export const TraderProfile = () => {
                 is_public: false, // Start as private
                 bio: '',
                 stats_visibility: {
+                  net_pnl: false,
                   win_rate: true,
-                  total_pnl: true,
                   profit_factor: true,
-                  trades_count: true,
+                  avg_win_loss: true,
+                  account_balance: false,
+                  daily_pnl: true,
+                  recent_trades: true,
                   calendar_view: true,
+                  trades_count: true,
                   performance_chart: true,
                   monthly_performance: true,
                   trade_distribution: true,
                   top_instruments: true,
-                  recent_trades: true
                 }
               });
 
@@ -384,22 +388,14 @@ export const TraderProfile = () => {
 
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold">Trader Not Found</h2>
-              <p className="text-muted-foreground">
-                The trader profile you're looking for doesn't exist or is not public.
-              </p>
-              <Button onClick={() => navigate('/community')}>
-                Browse Community
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-muted-foreground">Trader profile not found</p>
         </div>
       </Layout>
     );
   }
+
+  const profile = traderData.data;
 
   return (
     <Layout>
@@ -413,13 +409,13 @@ export const TraderProfile = () => {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{traderData?.app_users?.username || username}</BreadcrumbPage>
+                <BreadcrumbPage>{profile.username || username}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           {/* Profile Header */}
           <ProfileHeader
-            traderData={traderData}
+            trader={profile}
             calculatedStats={calculatedStats}
             isOwner={isOwner}
             onEditProfile={handleEditProfile}
@@ -453,9 +449,9 @@ export const TraderProfile = () => {
                   <div className="flex items-center justify-between">
                     <CardTitle>About</CardTitle>
                     {isOwner && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setIsEditingAbout(!isEditingAbout)}
                       >
                         <Edit className="h-4 w-4 mr-2" />
@@ -466,15 +462,15 @@ export const TraderProfile = () => {
                 </CardHeader>
                 <CardContent>
                   <BentoAboutEditor
-                    initialBio={traderData?.bio || ''}
+                    initialBio={profile.bio || ''}
                     initialContent={(() => {
                       // More robust content processing
-                      if (!traderData?.about_content) {
+                      if (!profile.about_content) {
                         return [];
                       }
-                      
+
                       // Handle case where about_content might be a string (JSON)
-                      let content = traderData.about_content;
+                      let content = profile.about_content;
                       if (typeof content === 'string') {
                         try {
                           content = JSON.parse(content);
@@ -482,12 +478,12 @@ export const TraderProfile = () => {
                           return [];
                         }
                       }
-                      
+
                       // Ensure it's an array
                       if (!Array.isArray(content)) {
                         return [];
                       }
-                      
+
                       // Map and validate each block
                       return content.map((block: any, index: number) => {
                         if (!block || typeof block !== 'object') {
@@ -498,7 +494,7 @@ export const TraderProfile = () => {
                             size: 'medium'
                           };
                         }
-                        
+
                         return {
                           id: block.id || `block-${index}-${Date.now()}`,
                           type: block.type || 'text',
@@ -518,7 +514,7 @@ export const TraderProfile = () => {
 
             <TabsContent value="overview" className="space-y-6">
               <PublicTraderOverviewTab
-                traderData={traderData}
+                traderData={profile}
                 isOwner={isOwner}
                 analyticsData={analyticsData}
                 isLoadingAnalytics={isLoadingAnalytics}
@@ -567,7 +563,7 @@ export const TraderProfile = () => {
               </Card>
             </TabsContent>
           </Tabs>
-          
+
           {/* Profile Edit Modal */}
           <ProfileEditModal
             open={showEditProfile}

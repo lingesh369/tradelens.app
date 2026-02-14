@@ -88,11 +88,11 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         .from('profile-pictures')
         .getPublicUrl(data.path);
 
-      // Update user profile with new image URL
+      // Update user profile with new image URL - user.id IS the app_users.id
       const { error: updateError } = await supabase
         .from('app_users')
-        .update({ profile_picture_url: publicUrl } as any)
-        .eq('auth_id', user.id);
+        .update({ avatar_url: publicUrl } as any)
+        .eq('id', user.id);
 
       if (updateError) {
         console.error('Profile update error:', updateError);
@@ -134,7 +134,7 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
             {userInitials}
           </AvatarFallback>
         </Avatar>
-        
+
         <Button
           type="button"
           size="sm"

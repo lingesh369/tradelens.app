@@ -135,7 +135,7 @@ const ProfileDetails: React.FC = () => {
           show_win_rate: true,
           show_trades: true,
         },
-      },
+      } as any, // Partial update - upsert will handle missing fields
     });
   };
 
@@ -333,8 +333,8 @@ const ProfileDetails: React.FC = () => {
           />
 
           {isEditing && (
-            <Button type="submit" className="w-full" disabled={isSubmitting || !isUsernameValid}>
-              {isSubmitting ? (
+            <Button type="submit" className="w-full" disabled={isUpdating || !isUsernameValid}>
+              {isUpdating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                 </>

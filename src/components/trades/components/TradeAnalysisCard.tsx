@@ -62,7 +62,7 @@ export function TradeAnalysisCard({
         const { data, error } = await supabase
           .from('trades')
           .select('main_image, additional_images')
-          .eq('trade_id', tradeId)
+          .eq('id', tradeId)
           .single();
         
         if (error) {
@@ -111,7 +111,7 @@ export function TradeAnalysisCard({
             const { error } = await supabase
               .from('trades')
               .update({ main_image: imageUrl })
-              .eq('trade_id', tradeId);
+              .eq('id', tradeId);
             
             if (error) throw error;
             
@@ -172,7 +172,7 @@ export function TradeAnalysisCard({
       const { error } = await supabase
         .from('trades')
         .update({ main_image: imageUrl })
-        .eq('trade_id', tradeId);
+        .eq('id', tradeId);
       
       if (error) throw error;
       
@@ -227,7 +227,7 @@ export function TradeAnalysisCard({
       const { error } = await supabase
         .from('trades')
         .update({ additional_images: newAdditionalImages })
-        .eq('trade_id', tradeId);
+        .eq('id', tradeId);
       
       if (error) throw error;
       
@@ -262,7 +262,7 @@ export function TradeAnalysisCard({
       const { error } = await supabase
         .from('trades')
         .update({ main_image: null })
-        .eq('trade_id', tradeId);
+        .eq('id', tradeId);
       
       if (error) throw error;
       
@@ -294,7 +294,7 @@ export function TradeAnalysisCard({
       const { error } = await supabase
         .from('trades')
         .update({ additional_images: newAdditionalImages })
-        .eq('trade_id', tradeId);
+        .eq('id', tradeId);
       
       if (error) throw error;
       

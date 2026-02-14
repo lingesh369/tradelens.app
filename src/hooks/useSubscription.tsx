@@ -38,7 +38,7 @@ export const useSubscription = () => {
       subscriptionChannel = supabase.channel(`user-subscription-changes-${internalUserId}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'user_subscriptions_new', filter: `user_id=eq.${internalUserId}` },
+          { event: '*', schema: 'public', table: 'user_subscriptions', filter: `user_id=eq.${internalUserId}` },
           (payload) => {
             console.log('Subscription change received!', payload);
             queryClient.invalidateQueries({ queryKey: ['user-subscription', user.id] });
@@ -159,7 +159,7 @@ export const useSubscription = () => {
 
         // Get subscription with plan details
         const { data: subData, error: subError } = await supabase
-          .from("user_subscriptions_new")
+          .from("user_subscriptions")
           .select(`
             *,
             subscription_plans (
@@ -313,7 +313,7 @@ export const useSubscription = () => {
         
         // Update subscription status
         const { error } = await supabase
-          .from("user_subscriptions_new")
+          .from("user_subscriptions")
           .update({ status: 'expired' })
           .eq("subscription_id", userSubscription.id);
         

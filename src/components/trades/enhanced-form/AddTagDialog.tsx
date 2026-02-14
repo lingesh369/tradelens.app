@@ -20,7 +20,7 @@ export function AddTagDialog({ open, onOpenChange, onTagAdded }: AddTagDialogPro
   const [tagType, setTagType] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { createTag } = useTags();
   const { toast } = useToast();
 
@@ -30,7 +30,7 @@ export function AddTagDialog({ open, onOpenChange, onTagAdded }: AddTagDialogPro
 
     try {
       createTag({
-        tag_name: tagName,
+        name: tagName,
         tag_type: tagType,
         description: description || null,
       });
@@ -39,7 +39,7 @@ export function AddTagDialog({ open, onOpenChange, onTagAdded }: AddTagDialogPro
       setTagName("");
       setTagType("");
       setDescription("");
-      
+
       onTagAdded?.();
       onOpenChange(false);
     } catch (error: any) {
@@ -70,7 +70,7 @@ export function AddTagDialog({ open, onOpenChange, onTagAdded }: AddTagDialogPro
               required
             />
           </div>
-          
+
           <div>
             <Label htmlFor="tagType">Tag Type *</Label>
             <Select value={tagType} onValueChange={setTagType} required>
@@ -83,7 +83,7 @@ export function AddTagDialog({ open, onOpenChange, onTagAdded }: AddTagDialogPro
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -94,7 +94,7 @@ export function AddTagDialog({ open, onOpenChange, onTagAdded }: AddTagDialogPro
               rows={2}
             />
           </div>
-          
+
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

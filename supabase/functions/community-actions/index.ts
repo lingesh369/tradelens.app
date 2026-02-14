@@ -1,3 +1,4 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { handleCors } from '../_shared/cors.ts';
 import { verifyAuth, createServiceClient } from '../_shared/auth.ts';
 import { successResponse, errorResponse } from '../_shared/response.ts';
@@ -20,31 +21,35 @@ Deno.serve(async (req) => {
 
     const supabase = createServiceClient();
 
-    // Get app user ID
-    const { data: appUser } = await supabase
+    // Simplified current user identification
+    const currentUserId = user.id;
+
+    // Verify user exists in app_users
+    const { data: appUser, error: appUserError } = await supabase
       .from('app_users')
-      .select('user_id')
-      .eq('auth_id', user.id)
+      .select('id')
+      .eq('id', currentUserId)
       .single();
 
-    if (!appUser) {
-      return errorResponse('User not found', 404);
+    if (appUserError || !appUser) {
+      return errorResponse('User profile not found. Please complete onboarding.', 404);
     }
-
-    const currentUserId = appUser.user_id;
 
     switch (action) {
       case 'like': {
         if (!tradeId) return errorResponse('Trade ID required for like action');
 
         const { error } = await supabase
-          .from('community_likes')
+          .from('trade_likes')
           .insert({
             user_id: currentUserId,
             trade_id: tradeId,
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') return successResponse({ success: true, action: 'already_liked' });
+          throw error;
+        }
         return successResponse({ success: true, action: 'liked' });
       }
 
@@ -52,7 +57,7 @@ Deno.serve(async (req) => {
         if (!tradeId) return errorResponse('Trade ID required for unlike action');
 
         const { error } = await supabase
-          .from('community_likes')
+          .from('trade_likes')
           .delete()
           .eq('user_id', currentUserId)
           .eq('trade_id', tradeId);
@@ -71,7 +76,10 @@ Deno.serve(async (req) => {
             following_id: userId,
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') return successResponse({ success: true, action: 'already_followed' });
+          throw error;
+        }
         return successResponse({ success: true, action: 'followed' });
       }
 
@@ -98,7 +106,7 @@ Deno.serve(async (req) => {
           .insert({
             trade_id: tradeId,
             user_id: currentUserId,
-            comment_text: commentText,
+            content: commentText, // Local column name is content
           })
           .select()
           .single();
@@ -114,7 +122,7 @@ Deno.serve(async (req) => {
         const { data: trade } = await supabase
           .from('trades')
           .select('user_id')
-          .eq('trade_id', tradeId)
+          .eq('id', tradeId) // Local PK name is id
           .single();
 
         if (!trade || trade.user_id !== currentUserId) {
@@ -128,7 +136,10 @@ Deno.serve(async (req) => {
             trade_id: tradeId,
           });
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') return successResponse({ success: true, action: 'already_pinned' });
+          throw error;
+        }
         return successResponse({ success: true, action: 'pinned' });
       }
 

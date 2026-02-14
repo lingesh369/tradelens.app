@@ -22,7 +22,11 @@ export const StrategyAnalyzer: React.FC = () => {
   const {
     toast
   } = useToast();
-  const [dateRange, setDateRange] = useState<DateRange>();
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(2000, 0, 1), // Far past date for "All Time"
+    to: new Date(2099, 11, 31), // Far future date for "All Time"
+    preset: "allTime"
+  });
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<GPTAnalysisResponse | null>(null);
@@ -34,17 +38,6 @@ export const StrategyAnalyzer: React.FC = () => {
       setSelectedStrategies(strategies.map(strategy => strategy.strategy_id));
     }
   }, [strategies, selectedStrategies.length]);
-
-  // Set default date range to "All Time"
-  useEffect(() => {
-    if (!dateRange) {
-      setDateRange({
-        from: new Date(new Date().getFullYear() - 1, 0, 1),
-        to: new Date(),
-        preset: 'thisYear'
-      });
-    }
-  }, [dateRange]);
   const handleAnalyze = async () => {
     if (!dateRange?.from || !dateRange?.to || selectedStrategies.length === 0) {
       toast({

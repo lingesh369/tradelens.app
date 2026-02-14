@@ -10,8 +10,8 @@ const resolveTagNames = async (tagIds: string[]): Promise<string[]> => {
   
   const { data, error } = await supabase
     .from("tags")
-    .select("tag_id, tag_name")
-    .in("tag_id", tagIds);
+    .select("id, name")
+    .in("id", tagIds);
     
   if (error) {
     console.error("Error fetching tag names:", error);
@@ -19,7 +19,7 @@ const resolveTagNames = async (tagIds: string[]): Promise<string[]> => {
   }
   
   // Create a map for quick lookup
-  const tagMap = new Map(data.map(tag => [tag.tag_id, tag.tag_name]));
+  const tagMap = new Map(data.map(tag => [tag.id, tag.name]));
   
   // Return tag names in the same order as the input IDs
   return tagIds.map(id => tagMap.get(id) || id);
@@ -73,12 +73,12 @@ export const fetchTrades = async (userId: string): Promise<Trade[]> => {
   if (allTagIds.size > 0) {
     const { data: tagsData, error: tagsError } = await supabase
       .from("tags")
-      .select("tag_id, tag_name")
-      .in("tag_id", Array.from(allTagIds));
+      .select("id, name")
+      .in("id", Array.from(allTagIds));
       
     if (!tagsError && tagsData) {
       tagsData.forEach(tag => {
-        tagNamesMap.set(tag.tag_id, tag.tag_name);
+        tagNamesMap.set(tag.id, tag.name);
       });
     }
   }

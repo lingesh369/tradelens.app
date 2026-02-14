@@ -6,7 +6,7 @@ import { useUserProfile } from "./useUserProfile";
 import { ImageUploadService } from "@/services/imageUploadService";
 
 export interface SimpleJournalEntry {
-  journal_id: string;
+  id: string;
   user_id: string;
   journal_date: string;
   notes: string | null;
@@ -20,7 +20,7 @@ export function useSimpleJournal() {
   const { profile } = useUserProfile();
 
   const getJournalByDate = useCallback(async (date: Date): Promise<SimpleJournalEntry | null> => {
-    if (!profile?.user_id) return null;
+    if (!profile?.id) return null;
 
     try {
       setIsLoading(true);
@@ -28,8 +28,8 @@ export function useSimpleJournal() {
       
       const { data, error } = await supabase
         .from('journal')
-        .select('journal_id, user_id, journal_date, notes, all_trades_notes, all_journal_images_notes')
-        .eq('user_id', profile.user_id)
+        .select('id, user_id, journal_date, notes, all_trades_notes, all_journal_images_notes')
+        .eq('user_id', profile.id)
         .eq('journal_date', dateStr)
         .maybeSingle();
 
@@ -42,10 +42,10 @@ export function useSimpleJournal() {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.user_id]);
+  }, [profile?.id]);
 
   const saveJournalNotes = useCallback(async (date: Date, notes: string): Promise<boolean> => {
-    if (!profile?.user_id) {
+    if (!profile?.id) {
       toast({
         title: "Error",
         description: "User profile not loaded",
@@ -69,8 +69,8 @@ export function useSimpleJournal() {
         const { error } = await supabase
           .from('journal')
           .update({ notes: processedNotes })
-          .eq('journal_id', existing.journal_id)
-          .eq('user_id', profile.user_id);
+          .eq('id', existing.id)
+          .eq('user_id', profile.id);
 
         if (error) throw error;
       } else {
@@ -78,7 +78,7 @@ export function useSimpleJournal() {
         const { error } = await supabase
           .from('journal')
           .insert([{
-            user_id: profile.user_id,
+            user_id: profile.id,
             journal_date: dateStr,
             notes: processedNotes,
             net_pl: 0,
@@ -113,7 +113,7 @@ export function useSimpleJournal() {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.user_id, getJournalByDate, toast]);
+  }, [profile?.id, getJournalByDate, toast]);
 
   return {
     getJournalByDate,
@@ -121,3 +121,5 @@ export function useSimpleJournal() {
     isLoading
   };
 }
+
+

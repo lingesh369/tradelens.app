@@ -40,7 +40,7 @@ const UserSubscriptionInfo = ({ userDetails, userStats, formatDate, onUpdate }: 
       try {
         // Fetch active subscription details
         const { data: subData, error: subError } = await supabase
-          .from('user_subscriptions_new')
+          .from('user_subscriptions')
           .select(`
             *,
             subscription_plans (

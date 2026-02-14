@@ -28,10 +28,10 @@ export function TradeNotesTab({
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>("");
   const additionalImagesInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const watchTags = form.watch("tags");
   const watchTradeRating = form.watch("tradeRating");
   const watchMainImage = form.watch("mainImage");
@@ -81,7 +81,7 @@ export function TradeNotesTab({
       const fileName = `${user.id}/trades/additional-${Date.now()}-${file.name}`;
       const imageUrl = await uploadImage(fileName, file);
       form.setValue("additionalImages", [...currentImages, imageUrl]);
-      
+
       toast({
         title: "Additional image uploaded successfully",
       });
@@ -165,19 +165,19 @@ export function TradeNotesTab({
             Add Tag
           </Button>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           {/* Mistake Tags */}
           {mistakeTags.map((tag) => {
-            const isSelected = watchTags?.includes(tag.tag_id);
+            const isSelected = watchTags?.includes(tag.id);
             return (
               <Badge
-                key={tag.tag_id}
+                key={tag.id}
                 variant={isSelected ? "default" : "outline"}
                 className="cursor-pointer hover:bg-primary/80"
-                onClick={() => isSelected ? removeTag(tag.tag_id) : addTag(tag.tag_id)}
+                onClick={() => isSelected ? removeTag(tag.id) : addTag(tag.id)}
               >
-                {tag.tag_name}
+                {tag.name}
                 {isSelected && <X className="ml-1 h-3 w-3" />}
               </Badge>
             );
@@ -185,15 +185,15 @@ export function TradeNotesTab({
 
           {/* Other Tags */}
           {otherTags.map((tag) => {
-            const isSelected = watchTags?.includes(tag.tag_id);
+            const isSelected = watchTags?.includes(tag.id);
             return (
               <Badge
-                key={tag.tag_id}
+                key={tag.id}
                 variant={isSelected ? "default" : "outline"}
                 className="cursor-pointer hover:bg-primary/80"
-                onClick={() => isSelected ? removeTag(tag.tag_id) : addTag(tag.tag_id)}
+                onClick={() => isSelected ? removeTag(tag.id) : addTag(tag.id)}
               >
-                {tag.tag_name}
+                {tag.name}
                 {isSelected && <X className="ml-1 h-3 w-3" />}
               </Badge>
             );
@@ -250,7 +250,7 @@ export function TradeNotesTab({
               ))}
             </div>
           )}
-          
+
           {/* Upload Button */}
           {(!watchAdditionalImages || watchAdditionalImages.length < 3) && (
             <>
@@ -262,8 +262,8 @@ export function TradeNotesTab({
                 disabled={isUploadingAdditional}
               >
                 <Image className="h-4 w-4 mr-2" />
-                {isUploadingAdditional 
-                  ? "Uploading..." 
+                {isUploadingAdditional
+                  ? "Uploading..."
                   : `Attach Images (${watchAdditionalImages?.length || 0}/3)`
                 }
               </Button>

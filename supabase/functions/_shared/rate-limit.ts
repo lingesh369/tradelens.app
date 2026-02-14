@@ -3,57 +3,56 @@ import { createServiceClient } from './auth.ts';
 interface RateLimitConfig {
   maxRequests: number;
   windowMs: number;
-  keyPrefix?: string;
+  keyPrefix?: string; // Used as 'function_name' in logs
 }
 
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
-
+/**
+ * Checks rate limit by counting function_logs for the given user and function in the time window.
+ * This is stateless and robust across Edge Function restarts.
+ */
 export async function checkRateLimit(
   userId: string,
   config: RateLimitConfig
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
-  const key = `${config.keyPrefix || 'default'}:${userId}`;
+  const supabase = createServiceClient();
   const now = Date.now();
+  const windowStart = new Date(now - config.windowMs).toISOString();
+  const functionName = config.keyPrefix || 'default';
 
-  // Clean up expired entries
-  for (const [k, v] of rateLimitStore.entries()) {
-    if (v.resetAt < now) {
-      rateLimitStore.delete(k);
-    }
+  // Count requests in the window
+  // "function_logs" tracks executions. 
+  // Note: This counts *completed* executions. Buffered requests might slip through in high concurrency,
+  // but for 50/hour limits, strict atomicity isn't required vs performance.
+  // We use 'count' which is fast on indexed columns.
+  const { count, error } = await supabase
+    .from('function_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('function_name', functionName)
+    .gte('called_at', windowStart);
+
+  if (error) {
+     console.error('Rate limit check failed:', error);
+     // Fail open to avoid blocking users on DB error, but log it.
+     return { allowed: true, remaining: 1, resetAt: now + config.windowMs };
   }
 
-  let entry = rateLimitStore.get(key);
+  const currentUsage = count || 0;
+  const remaining = Math.max(0, config.maxRequests - currentUsage);
+  const resetAt = now + config.windowMs; // Simplified reset (rolling window)
 
-  if (!entry || entry.resetAt < now) {
-    // Create new entry
-    entry = {
-      count: 1,
-      resetAt: now + config.windowMs,
-    };
-    rateLimitStore.set(key, entry);
-
-    return {
-      allowed: true,
-      remaining: config.maxRequests - 1,
-      resetAt: entry.resetAt,
-    };
-  }
-
-  // Increment count
-  entry.count++;
-
-  if (entry.count > config.maxRequests) {
+  if (currentUsage >= config.maxRequests) {
     return {
       allowed: false,
       remaining: 0,
-      resetAt: entry.resetAt,
+      resetAt,
     };
   }
 
   return {
     allowed: true,
-    remaining: config.maxRequests - entry.count,
-    resetAt: entry.resetAt,
+    remaining,
+    resetAt,
   };
 }
 
@@ -82,7 +81,7 @@ export const AI_RATE_LIMITS = {
   intent: { maxRequests: 100, windowMs: 60 * 60 * 1000, keyPrefix: 'ai-intent' }, // 100 per hour
 };
 
-// Payment rate limits
+// Payment rate limits (Stricter, perhaps different table or logic, but reusing for consistency)
 export const PAYMENT_RATE_LIMITS = {
   createOrder: { maxRequests: 10, windowMs: 60 * 60 * 1000, keyPrefix: 'payment-create' }, // 10 per hour
 };

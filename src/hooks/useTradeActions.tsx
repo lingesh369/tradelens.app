@@ -2,14 +2,12 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { useAppUserId } from '@/hooks/useAppUserId';
 import { useToast } from '@/hooks/use-toast';
 
 export const useTradeActions = () => {
   const [isLiking, setIsLiking] = useState(false);
   const [isCommenting, setIsCommenting] = useState(false);
   const { user } = useAuth();
-  const { appUserId } = useAppUserId();
   const { toast } = useToast();
 
   const toggleLike = async (tradeId: string, isLiked: boolean) => {
@@ -41,15 +39,15 @@ export const useTradeActions = () => {
         const { data: tradeData } = await supabase
           .from('trades')
           .select('user_id, instrument')
-          .eq('trade_id', tradeId)
+          .eq('id', tradeId)
           .single();
 
-        if (tradeData && tradeData.user_id !== appUserId && appUserId) {
+        if (tradeData && tradeData.user_id !== user.id) {
           // Create notification for trade owner
           await (supabase as any).rpc('create_notification', {
             target_user_id: tradeData.user_id,
             notification_type: 'like',
-            source_user_id: appUserId,
+            source_user_id: user.id,
             trade_id: tradeId,
             title: 'New Like',
             message: `${user.user_metadata?.username || user.email} liked your ${tradeData.instrument} trade`
@@ -87,15 +85,15 @@ export const useTradeActions = () => {
       const { data: tradeData } = await supabase
         .from('trades')
         .select('user_id, instrument')
-        .eq('trade_id', tradeId)
+        .eq('id', tradeId)
         .single();
 
-      if (tradeData && tradeData.user_id !== appUserId && appUserId) {
+      if (tradeData && tradeData.user_id !== user.id) {
         // Create notification for trade owner
         await (supabase as any).rpc('create_notification', {
           target_user_id: tradeData.user_id,
           notification_type: 'comment',
-          source_user_id: appUserId,
+          source_user_id: user.id,
           trade_id: tradeId,
           title: 'New Comment',
           message: `${user.user_metadata?.username || user.email} commented on your ${tradeData.instrument} trade`

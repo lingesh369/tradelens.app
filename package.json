@@ -21,9 +21,12 @@
     "supabase:reset": "supabase db reset",
     "supabase:studio": "start http://127.0.0.1:54323",
     "supabase:setup": "node scripts/setup-local-supabase.bat",
+    "supabase:types": "supabase gen types typescript --local > src/integrations/supabase/types.ts",
     "db:migrate": "supabase migration new",
     "db:push": "supabase db push",
-    "db:dump": "supabase db dump --local --schema public"
+    "db:dump": "supabase db dump --local --schema public",
+    "diagnose:profile": "node scripts/diagnose-profile-issue.js",
+    "fix:profile": "scripts/fix-profile-creation.bat"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.55.1",

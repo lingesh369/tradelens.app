@@ -63,7 +63,7 @@ export const useAIChat = () => {
       console.log('Processing AI chat message:', { 
         messageLength: message.length, 
         hasImage: !!imageUrl,
-        userId: profile.user_id
+        userId: profile.id
       });
 
       // Step 1: Classify user intent
@@ -270,7 +270,11 @@ export const useAIChat = () => {
       const requestBody: any = {
         message,
         intent: intentData.intent,
-        contextData,
+        context: contextData, // Mapped from contextData to context
+        conversationHistory: messages.map(m => ({ 
+          role: m.role, 
+          content: m.content 
+        })), // Include history
         imageUrl: null,
         hasContext: !!contextData,
         isGeneralQuestion: false,

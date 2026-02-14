@@ -31,18 +31,27 @@ const Dashboard = () => {
     if (trades.length === 0) return trades;
     
     console.log("Dashboard filtering trades with global filters:", filters);
+    console.log("Total trades before filtering:", trades.length);
+    console.log("Date range filter:", filters.dateRange);
+    
     const filtered = trades.filter(trade => {
+      // Only apply date filter if both from and to are set
       if (trade.entry_time && filters.dateRange.from && filters.dateRange.to) {
         const tradeDate = new Date(trade.entry_time);
         const filterFrom = startOfDay(filters.dateRange.from);
         const filterTo = endOfDay(filters.dateRange.to);
+        
+        console.log(`Trade ${trade.instrument}: ${tradeDate.toISOString()} vs ${filterFrom.toISOString()} - ${filterTo.toISOString()}`);
         
         const dateMatches = isWithinInterval(tradeDate, {
           start: filterFrom,
           end: filterTo
         });
         
-        if (!dateMatches) return false;
+        if (!dateMatches) {
+          console.log(`Trade ${trade.instrument} filtered out by date`);
+          return false;
+        }
       }
 
       // Account filter
@@ -54,7 +63,8 @@ const Dashboard = () => {
       return true;
     });
     
-    console.log("Dashboard filtered trades:", filtered);
+    console.log("Dashboard filtered trades count:", filtered.length);
+    console.log("Filtered trades:", filtered.map(t => ({ instrument: t.instrument, entry_time: t.entry_time })));
     return filtered;
   }, [trades, filters.dateRange.from, filters.dateRange.to, filters.selectedAccounts]);
 

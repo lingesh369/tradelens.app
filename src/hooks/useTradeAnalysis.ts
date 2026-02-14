@@ -25,23 +25,17 @@ export const useTradeAnalysis = () => {
     setError(null);
 
     try {
-      // Get user profile
+      // Get user profile - user.id IS the app_users.id
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: appUser } = await supabase
-        .from('app_users')
-        .select('user_id')
-        .eq('auth_id', user.id)
-        .single();
-
-      if (!appUser) throw new Error('User profile not found');
+      const appUserId = user.id; // No need for separate query
 
       // Perform the analysis using the service
       const result = await performTradeAnalysis({
         selectedTradeIds,
         dateRange,
-        appUserId: appUser.user_id,
+        appUserId: appUserId,
         accounts,
         strategies,
         settings

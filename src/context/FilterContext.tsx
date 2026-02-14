@@ -28,12 +28,30 @@ const getDefaultSelectedAccounts = (): SelectedAccounts => ({
 // Storage keys
 const STORAGE_KEYS = {
   DATE_RANGE: 'tradelens_global_date_range',
-  SELECTED_ACCOUNTS: 'tradelens_global_selected_accounts'
+  SELECTED_ACCOUNTS: 'tradelens_global_selected_accounts',
+  VERSION: 'tradelens_filter_version'
 };
+
+// Version for filter storage - increment when defaults change
+const FILTER_VERSION = '2'; // Changed to force reset to "All Time"
 
 // Load from sessionStorage with fallback to defaults
 const loadFromStorage = (): GlobalFilters => {
   try {
+    const savedVersion = sessionStorage.getItem(STORAGE_KEYS.VERSION);
+    
+    // If version doesn't match, clear old storage and use defaults
+    if (savedVersion !== FILTER_VERSION) {
+      console.log('Filter version mismatch, resetting to defaults');
+      sessionStorage.removeItem(STORAGE_KEYS.DATE_RANGE);
+      sessionStorage.removeItem(STORAGE_KEYS.SELECTED_ACCOUNTS);
+      sessionStorage.setItem(STORAGE_KEYS.VERSION, FILTER_VERSION);
+      return {
+        dateRange: getDefaultDateRange(),
+        selectedAccounts: getDefaultSelectedAccounts()
+      };
+    }
+    
     const savedDateRange = sessionStorage.getItem(STORAGE_KEYS.DATE_RANGE);
     const savedAccounts = sessionStorage.getItem(STORAGE_KEYS.SELECTED_ACCOUNTS);
     
@@ -65,6 +83,7 @@ const saveToStorage = (filters: GlobalFilters) => {
   try {
     sessionStorage.setItem(STORAGE_KEYS.DATE_RANGE, JSON.stringify(filters.dateRange));
     sessionStorage.setItem(STORAGE_KEYS.SELECTED_ACCOUNTS, JSON.stringify(filters.selectedAccounts));
+    sessionStorage.setItem(STORAGE_KEYS.VERSION, FILTER_VERSION);
   } catch (error) {
     console.error('Error saving filters to storage:', error);
   }

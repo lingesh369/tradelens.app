@@ -25,6 +25,17 @@ const socialPlatforms = [
   { key: 'website', label: 'Website', placeholder: 'https://yourwebsite.com' },
 ];
 
+const statsVisibilityControls = [
+  { key: 'net_pnl', label: 'Net P&L', description: 'Total profit and loss' },
+  { key: 'win_rate', label: 'Win Rate', description: 'Percentage of winning trades' },
+  { key: 'profit_factor', label: 'Profit Factor', description: 'Ratio of gross profit to gross loss' },
+  { key: 'avg_win_loss', label: 'Avg Win/Loss', description: 'Average win to average loss ratio' },
+  { key: 'account_balance', label: 'Account Balance', description: 'Current account balances' },
+  { key: 'daily_pnl', label: 'Daily P&L Chart', description: 'Daily profit and loss chart' },
+  { key: 'recent_trades', label: 'Recent Trades', description: 'List of recent trading activity' },
+  { key: 'calendar_view', label: 'Calendar View', description: 'Trading calendar with performance' }
+];
+
 const traderProfileSchema = z.object({
   bio: z.string().max(500, "Bio must be 500 characters or less").optional(),
 });
@@ -67,7 +78,7 @@ export const TraderProfileEdit = ({ onSave, username }: TraderProfileEditProps) 
 
       try {
         console.log("TraderProfileEdit - Loading profile for user:", user.id);
-        
+
         const { data: userIdData } = await supabase.rpc('get_user_id_from_auth', {
           auth_user_id: user.id
         });
@@ -92,11 +103,11 @@ export const TraderProfileEdit = ({ onSave, username }: TraderProfileEditProps) 
             form.reset({
               bio: traderProfile.bio || "",
             });
-            
+
             if (traderProfile.social_links) {
               setSocialLinks(traderProfile.social_links as Record<string, string>);
             }
-            
+
             if (traderProfile.stats_visibility) {
               setStatsVisibility({
                 ...statsVisibility,
@@ -151,7 +162,7 @@ export const TraderProfileEdit = ({ onSave, username }: TraderProfileEditProps) 
     setIsLoading(true);
     try {
       console.log("TraderProfileEdit - Starting save process...");
-      
+
       const { data: userIdData, error: userIdError } = await supabase.rpc('get_user_id_from_auth', {
         auth_user_id: user.id
       });
@@ -295,27 +306,21 @@ export const TraderProfileEdit = ({ onSave, username }: TraderProfileEditProps) 
               <p className="text-sm text-muted-foreground">
                 Choose which statistics are visible to other traders on your profile.
               </p>
-              
-              {Object.entries(statsVisibility).map(([stat, enabled]) => (
-                <div key={stat} className="flex items-center justify-between">
-                  <div>
-                    <Label className="font-medium capitalize">
-                      {stat.replace(/_/g, ' ')}
+
+              {statsVisibilityControls.map((control) => (
+                <div key={control.key} className="flex items-center justify-between p-2 hover:bg-muted/30 rounded-lg transition-colors">
+                  <div className="space-y-0.5">
+                    <Label className="font-medium cursor-pointer" htmlFor={`stat-${control.key}`}>
+                      {control.label}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      {stat === 'net_pnl' && 'Your total profit/loss percentage'}
-                      {stat === 'win_rate' && 'Your winning trade percentage'}
-                      {stat === 'profit_factor' && 'Your profit factor ratio'}
-                      {stat === 'avg_win_loss' && 'Average win vs loss comparison'}
-                      {stat === 'account_balance' && 'Your account balance information'}
-                      {stat === 'daily_pnl' && 'Daily profit/loss charts'}
-                      {stat === 'recent_trades' && 'List of your recent trades'}
-                      {stat === 'calendar_view' && 'Trading calendar and activity'}
+                      {control.description}
                     </p>
                   </div>
                   <Switch
-                    checked={enabled}
-                    onCheckedChange={(checked) => handleStatsVisibilityChange(stat, checked)}
+                    id={`stat-${control.key}`}
+                    checked={statsVisibility[control.key as keyof typeof statsVisibility]}
+                    onCheckedChange={(checked) => handleStatsVisibilityChange(control.key, checked)}
                   />
                 </div>
               ))}

@@ -95,12 +95,12 @@ const BillingHistory: React.FC = () => {
             </TableHeader>
             <TableBody>
               {paymentHistory.map((payment) => (
-                <TableRow key={payment.payment_id}>
+                <TableRow key={payment.payment_id || payment.id}>
                   <TableCell>
                     <div className="text-xs sm:text-sm">
-                      {format(new Date(payment.payment_date), "MMM dd, yyyy")}
+                      {format(new Date(payment.created_at), "MMM dd, yyyy")}
                       <div className="text-xs text-muted-foreground sm:hidden">
-                        {format(new Date(payment.payment_date), "p")}
+                        {format(new Date(payment.created_at), "p")}
                       </div>
                     </div>
                   </TableCell>

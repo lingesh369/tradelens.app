@@ -21,9 +21,9 @@ import { useEnhancedNavigation } from "@/hooks/useEnhancedNavigation";
 const Journal = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    to: new Date(),
-    preset: "thisMonth",
+    from: new Date(2000, 0, 1), // Far past date for "All Time"
+    to: new Date(2099, 11, 31), // Far future date for "All Time"
+    preset: "allTime",
   });
   const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("notes");
@@ -319,7 +319,7 @@ const Journal = () => {
           
           {calendarData.weeks.map((week, weekIndex) => (
             <div key={weekIndex} className="grid grid-cols-7 gap-1 mb-1">
-              {week.map((day, dayIndex) => {
+              {week.map((day) => {
                 const isCurrentMonth = day.getMonth() === calendarData.currentMonth;
                 const isSelected = isEqual(
                   new Date(day.getFullYear(), day.getMonth(), day.getDate()),
@@ -357,7 +357,7 @@ const Journal = () => {
                 
                 return (
                   <Button
-                    key={dayIndex}
+                    key={dayDateStr}
                     variant="ghost"
                     size="sm"
                     className={`
@@ -392,7 +392,7 @@ const Journal = () => {
             <div className="space-y-3">
               {journals.slice(0, 5).map((entry) => (
                 <Card 
-                  key={entry.journal_id} 
+                  key={entry.id} 
                   className={`cursor-pointer hover:bg-accent/50 transition-colors ${
                     entry.journal_date && format(new Date(entry.journal_date), "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
                       ? "border-primary" 
@@ -569,9 +569,9 @@ const Journal = () => {
                           <div className="space-y-2">
                             {selectedDateTrades.map((trade) => (
                               <Card 
-                                key={trade.trade_id} 
+                                key={trade.id} 
                                 className="border border-muted cursor-pointer hover:bg-accent/50 transition-colors"
-                                onClick={() => handleTradeClick(trade.trade_id)}
+                                onClick={() => handleTradeClick(trade.id)}
                               >
                                 <CardContent className="p-3 sm:p-4">
                                   <div className="flex justify-between mb-2">
@@ -731,9 +731,9 @@ const Journal = () => {
                           <div className="space-y-2">
                             {selectedDateTrades.map((trade) => (
                               <Card 
-                                key={trade.trade_id} 
+                                key={trade.id} 
                                 className="border border-muted cursor-pointer hover:bg-accent/50 transition-colors"
-                                onClick={() => handleTradeClick(trade.trade_id)}
+                                onClick={() => handleTradeClick(trade.id)}
                               >
                                 <CardContent className="p-3 sm:p-4">
                                   <div className="flex justify-between mb-2">
@@ -788,3 +788,5 @@ const Journal = () => {
 };
 
 export default Journal;
+
+

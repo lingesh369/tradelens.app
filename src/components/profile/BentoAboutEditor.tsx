@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  GripVertical, 
-  X, 
-  Type, 
-  Image as ImageIcon, 
+import {
+  GripVertical,
+  X,
+  Type,
+  Image as ImageIcon,
   Heading,
   ExternalLink,
   Upload,
@@ -44,10 +44,10 @@ interface BentoAboutEditorProps {
   onEditingChange?: (editing: boolean) => void;
 }
 
-export const BentoAboutEditor = ({ 
-  initialContent = [], 
+export const BentoAboutEditor = ({
+  initialContent = [],
   initialBio = '',
-  onSave, 
+  onSave,
   readOnly = false,
   isEditing = false,
   onEditingChange
@@ -55,16 +55,16 @@ export const BentoAboutEditor = ({
   // Keep original content and bio for cancellation
   const [originalBlocks] = useState<ContentBlock[]>(initialContent);
   const [originalBio] = useState(initialBio);
-  
+
   // Working copies for editing
   const [blocks, setBlocks] = useState<ContentBlock[]>(initialContent);
   const [bio, setBio] = useState(initialBio);
   const [editingMode, setEditingMode] = useState(isEditing);
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
-  
+
   // For image uploads - store local file objects
   const [localImages, setLocalImages] = useState<Record<string, File>>({});
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -77,7 +77,7 @@ export const BentoAboutEditor = ({
   useEffect(() => {
     onEditingChange?.(editingMode);
   }, [editingMode, onEditingChange]);
-  
+
   // Reset to original content when cancelling edit
   useEffect(() => {
     if (!editingMode) {
@@ -96,7 +96,7 @@ export const BentoAboutEditor = ({
   const createLocalImagePreview = useCallback((file: File): string => {
     return URL.createObjectURL(file);
   }, []);
-  
+
   // Upload image to storage - only called when saving
   const uploadImageToStorage = useCallback(async (file: File): Promise<string> => {
     if (!user?.id) {
@@ -115,12 +115,12 @@ export const BentoAboutEditor = ({
       throw error;
     }
   }, [user?.id]);
-  
+
   // Upload all pending local images to storage
   // Define updateBlock first since it's used by other functions
   const updateBlock = useCallback((id: string, content: any, size?: 'small' | 'medium' | 'large') => {
     console.log('updateBlock called:', { id, content, size });
-    const updatedBlocks = blocks.map(block => 
+    const updatedBlocks = blocks.map(block =>
       block.id === id ? { ...block, content, ...(size && { size }) } : block
     );
     console.log('Updated blocks:', updatedBlocks);
@@ -129,7 +129,7 @@ export const BentoAboutEditor = ({
 
   const uploadPendingImages = useCallback(async (): Promise<Record<string, string>> => {
     const uploadResults: Record<string, string> = {};
-    
+
     // Process each local image
     for (const [blockId, file] of Object.entries(localImages)) {
       try {
@@ -140,17 +140,17 @@ export const BentoAboutEditor = ({
         throw error;
       }
     }
-    
+
     return uploadResults;
   }, [localImages, uploadImageToStorage]);
 
   // Optimized link metadata fetching with immediate URL setting and background metadata fetch
   const handleLinkInput = useCallback(async (blockId: string, url: string) => {
     if (!url) {
-      updateBlock(blockId, { 
-        url: '', 
-        title: '', 
-        description: '', 
+      updateBlock(blockId, {
+        url: '',
+        title: '',
+        description: '',
         thumbnail: '',
         favicon: '',
         siteName: ''
@@ -160,8 +160,8 @@ export const BentoAboutEditor = ({
 
     // Immediately set the URL and basic info
     const basicMetadata = getBasicLinkMetadata(url);
-    updateBlock(blockId, { 
-      url, 
+    updateBlock(blockId, {
+      url,
       title: basicMetadata.title,
       description: basicMetadata.description,
       thumbnail: basicMetadata.thumbnail,
@@ -173,8 +173,8 @@ export const BentoAboutEditor = ({
     setBlockLoading(blockId, true);
     try {
       const fullMetadata = await fetchLinkMetadata(url);
-      updateBlock(blockId, { 
-        url, 
+      updateBlock(blockId, {
+        url,
         title: fullMetadata.title || basicMetadata.title,
         description: fullMetadata.description || basicMetadata.description,
         thumbnail: fullMetadata.thumbnail || basicMetadata.thumbnail,
@@ -194,17 +194,17 @@ export const BentoAboutEditor = ({
       id: uuidv4(),
       type,
       size: 'medium', // Default to medium size (2 columns)
-      content: type === 'text' ? { text: '' } : 
-               type === 'link' ? { url: '', title: '', description: '', thumbnail: '', favicon: '', siteName: '' } : 
-               type === 'image' ? { src: '', alt: '' } :
-               type === 'section' ? { title: '' } : {}
+      content: type === 'text' ? { text: '' } :
+        type === 'link' ? { url: '', title: '', description: '', thumbnail: '', favicon: '', siteName: '' } :
+          type === 'image' ? { src: '', alt: '' } :
+            type === 'section' ? { title: '' } : {}
     };
     setBlocks([...blocks, newBlock]);
   };
 
   const removeBlock = (id: string) => {
     setBlocks(blocks.filter(block => block.id !== id));
-    
+
     // Remove any local images associated with this block
     if (localImages[id]) {
       setLocalImages(prev => {
@@ -231,10 +231,10 @@ export const BentoAboutEditor = ({
     try {
       // First, upload any pending images
       const uploadedImageUrls = await uploadPendingImages();
-      
+
       // Update blocks with the uploaded image URLs
       let finalBlocks = [...blocks];
-      
+
       if (Object.keys(uploadedImageUrls).length > 0) {
         finalBlocks = finalBlocks.map(block => {
           if (uploadedImageUrls[block.id] && block.type === 'image') {
@@ -248,17 +248,17 @@ export const BentoAboutEditor = ({
           }
           return block;
         });
-        
+
         // Update blocks state with final URLs
         setBlocks(finalBlocks);
       }
-      
+
       // Clear local images after successful upload
       setLocalImages({});
-      
+
       // Save all changes
       onSave?.(finalBlocks, bio);
-      
+
       // Exit editing mode
       setEditingMode(false);
     } catch (error) {
@@ -292,8 +292,8 @@ export const BentoAboutEditor = ({
                   </div>
                   <span className="text-sm font-medium capitalize">{block.type} Block</span>
                   {block.type !== 'section' && (
-                    <Select 
-                      value={block.size || 'medium'} 
+                    <Select
+                      value={block.size || 'medium'}
                       onValueChange={(size) => updateBlock(block.id, block.content, size as 'small' | 'medium' | 'large')}
                     >
                       <SelectTrigger className="w-20 h-6 text-xs">
@@ -378,9 +378,9 @@ export const BentoAboutEditor = ({
                 <div className="mt-3 p-2 border rounded bg-background">
                   <div className="flex items-start gap-3">
                     {block.content.thumbnail && (
-                      <img 
-                        src={block.content.thumbnail} 
-                        alt="" 
+                      <img
+                        src={block.content.thumbnail}
+                        alt=""
                         className="w-12 h-12 rounded object-cover flex-shrink-0"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -388,9 +388,9 @@ export const BentoAboutEditor = ({
                       />
                     )}
                     {!block.content.thumbnail && block.content.favicon && (
-                      <img 
-                        src={block.content.favicon} 
-                        alt="" 
+                      <img
+                        src={block.content.favicon}
+                        alt=""
                         className="w-4 h-4 rounded object-cover flex-shrink-0 mt-1"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -437,7 +437,7 @@ export const BentoAboutEditor = ({
                       ...prev,
                       [block.id]: file
                     }));
-                    
+
                     // Create a local preview URL
                     const previewUrl = createLocalImagePreview(file);
                     updateBlock(block.id, { ...block.content, src: previewUrl, alt: file.name, isLocalPreview: true });
@@ -446,7 +446,7 @@ export const BentoAboutEditor = ({
                 className="hidden"
                 id={`image-upload-${block.id}`}
               />
-              <label 
+              <label
                 htmlFor={`image-upload-${block.id}`}
                 className="cursor-pointer flex flex-col items-center gap-2"
               >
@@ -463,9 +463,9 @@ export const BentoAboutEditor = ({
             {block.content.src && (
               <div className="space-y-2">
                 <div className="relative">
-                  <img 
-                    src={block.content.src} 
-                    alt={block.content.alt || 'Uploaded image'} 
+                  <img
+                    src={block.content.src}
+                    alt={block.content.alt || 'Uploaded image'}
                     className="max-w-full h-auto rounded-lg"
                   />
                   {block.content.isLocalPreview && (
@@ -499,7 +499,7 @@ export const BentoAboutEditor = ({
 
   const renderReadOnlyBlock = (block: ContentBlock) => {
     const sizeClass = getBlockSizeClass(block.size || 'medium');
-    
+
     switch (block.type) {
       case 'text':
         return (
@@ -513,22 +513,22 @@ export const BentoAboutEditor = ({
         );
       case 'link':
         if (!block.content.url) return null;
-        
+
         return (
           <div key={block.id} className={cn("mb-2", sizeClass)}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="pt-4">
-                <a 
-                  href={block.content.url} 
-                  target="_blank" 
+                <a
+                  href={block.content.url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="block"
                 >
                   <div className="flex items-start gap-3">
                     {block.content.thumbnail && (
-                      <img 
-                        src={block.content.thumbnail} 
-                        alt="" 
+                      <img
+                        src={block.content.thumbnail}
+                        alt=""
                         className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -536,9 +536,9 @@ export const BentoAboutEditor = ({
                       />
                     )}
                     {!block.content.thumbnail && block.content.favicon && (
-                      <img 
-                        src={block.content.favicon} 
-                        alt="" 
+                      <img
+                        src={block.content.favicon}
+                        alt=""
                         className="w-6 h-6 rounded object-cover flex-shrink-0 mt-1"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -575,14 +575,14 @@ export const BentoAboutEditor = ({
         );
       case 'image':
         if (!block.content.src) return null;
-        
+
         return (
           <div key={block.id} className={cn("mb-2", sizeClass)}>
             <Card>
               <CardContent className="pt-4">
-                <img 
-                  src={block.content.src} 
-                  alt={block.content.alt || 'Image'} 
+                <img
+                  src={block.content.src}
+                  alt={block.content.alt || 'Image'}
                   className="w-full h-auto rounded-lg"
                 />
                 {block.content.alt && (

@@ -36,11 +36,11 @@ export function TradeTagsSection({
   };
 
   const getTagName = (tagId: string) => {
-    return tags.find(tag => tag.tag_id === tagId)?.tag_name || tagId;
+    return tags.find(tag => tag.id === tagId)?.name || tagId;
   };
 
   const handleShowTagSelector = () => {
-    const unselectedTags = tags.filter(tag => !selectedTags.includes(tag.tag_id));
+    const unselectedTags = tags.filter(tag => !selectedTags.includes(tag.id));
     setAvailableTagsToAdd(unselectedTags);
     setShowTagSelector(true);
   };
@@ -96,11 +96,11 @@ export function TradeTagsSection({
             <div className="max-h-32 overflow-y-auto space-y-1">
               {availableTagsToAdd.map((tag) => (
                 <div
-                  key={tag.tag_id}
+                  key={tag.id}
                   className="p-2 hover:bg-accent cursor-pointer rounded text-sm"
-                  onClick={() => handleAddExistingTag(tag.tag_id)}
+                  onClick={() => handleAddExistingTag(tag.id)}
                 >
-                  {tag.tag_name}
+                  {tag.name}
                 </div>
               ))}
               {availableTagsToAdd.length === 0 && (

@@ -20,60 +20,83 @@ Deno.serve(async (req) => {
     // Get order status from Cashfree
     const orderDetails = await getCashfreeOrderStatus(order_id);
     
-    const supabase = createServiceClient();
-
-    // Check if payment exists
-    let { data: payment } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('transaction_id', order_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (!payment) {
-      return errorResponse('Payment not found', 404);
+    // Validating user ownership via customer_id in orderDetails or similar check is recommended
+    if (orderDetails.customer_details.customer_id !== user.id) {
+       return errorResponse('Unauthorized order confirmation', 403);
     }
 
-    // Update payment status
-    const paymentStatus = orderDetails.order_status === 'PAID' ? 'completed' : 
+    const supabase = createServiceClient();
+
+    // Check if payment history exists
+    let { data: payment } = await supabase
+      .from('payment_history')
+      .select('*')
+      .eq('gateway_order_id', order_id)
+      .single();
+
+    const paymentStatus = orderDetails.order_status === 'PAID' ? 'succeeded' : 
                          orderDetails.order_status === 'ACTIVE' ? 'pending' : 'failed';
 
-    await supabase
-      .from('payments')
-      .update({
-        status: paymentStatus,
-        payment_details: orderDetails,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', payment.id);
+    // Parse metadata for plan info if available from order_tags (assuming we sent them)
+    // Note: Cashfree response usually contains order_tags if sent
+    const planId = orderDetails.order_tags?.planId;
+    const billingCycle = orderDetails.order_tags?.billingCycle;
+
+    if (payment) {
+        // Update existing record
+        await supabase
+          .from('payment_history')
+          .update({
+            status: paymentStatus,
+            transaction_id: orderDetails.cf_order_id?.toString(), // Use cf_order_id as transaction_id
+            metadata: { ...payment.metadata, cashfree: orderDetails },
+            paid_at: paymentStatus === 'succeeded' ? new Date().toISOString() : null,
+          })
+          .eq('id', payment.id);
+    } else {
+        // Create new record
+        const { error: insertError } = await supabase
+          .from('payment_history')
+          .insert({
+            user_id: user.id,
+            amount: parseFloat(orderDetails.order_amount),
+            currency: orderDetails.order_currency,
+            status: paymentStatus,
+            payment_method: 'cashfree',
+            payment_gateway: 'cashfree',
+            gateway_order_id: order_id,
+            transaction_id: orderDetails.cf_order_id?.toString(),
+            metadata: { cashfree: orderDetails },
+            paid_at: paymentStatus === 'succeeded' ? new Date().toISOString() : null,
+          });
+          
+        if (insertError) {
+             console.error('Error creating payment history:', insertError);
+        }
+    }
 
     // If payment successful, activate subscription
     if (orderDetails.order_status === 'PAID') {
-      const startDate = new Date();
-      const endDate = new Date(startDate);
-      
-      if (payment.billing_cycle === 'monthly') {
-        endDate.setMonth(endDate.getMonth() + 1);
-      } else if (payment.billing_cycle === 'yearly') {
-        endDate.setFullYear(endDate.getFullYear() + 1);
-      }
-
-      const { error: subError } = await supabase
-        .from('subscriptions')
-        .upsert({
-          user_id: user.id,
-          plan_id: payment.plan_id,
-          status: 'active',
-          current_period_start: startDate.toISOString(),
-          current_period_end: endDate.toISOString(),
-          billing_cycle: payment.billing_cycle,
-          payment_provider: 'cashfree',
-          updated_at: new Date().toISOString(),
-        });
-
-      if (subError) {
-        console.error('Error creating subscription:', subError);
-        return errorResponse('Failed to activate subscription', 500);
+      if (!planId || !billingCycle) {
+          console.error('Missing planId or billingCycle in order tags, cannot activate subscription automatically via confirmation');
+          // We might want to look this up or error out, but for now we'll proceed and rely on webhook or shared logic if params are passed
+      } else {
+           const { error: processError } = await supabase.functions.invoke('process-payment-success', {
+            body: {
+              userId: user.id,
+              planId: planId,
+              billingCycle: billingCycle,
+              amount: parseFloat(orderDetails.order_amount),
+              paymentMethod: 'cashfree',
+              transactionId: orderDetails.cf_order_id?.toString() || order_id,
+              providerRef: order_id
+            }
+          });
+          
+          if (processError) {
+             console.error('Error processing payment success:', processError);
+             return errorResponse('Failed to activate subscription', 500);
+          }
       }
 
       return successResponse({

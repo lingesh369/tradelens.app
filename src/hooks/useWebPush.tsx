@@ -3,14 +3,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useAppUserId } from '@/hooks/useAppUserId';
 
 export const useWebPush = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
-  const { appUserId } = useAppUserId();
   const { toast } = useToast();
 
   // We'll get the VAPID public key from the edge function
@@ -81,7 +79,7 @@ export const useWebPush = () => {
   }, [toast]);
 
   const subscribe = useCallback(async () => {
-    if (!user || !appUserId || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!user || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       console.log('Push messaging not supported or user not logged in');
       return false;
     }
@@ -121,11 +119,11 @@ export const useWebPush = () => {
 
       console.log('Push subscription created:', subscription);
 
-      // Store subscription in Supabase using app user ID
+      // Store subscription in Supabase - user.id IS the app_users.id
       const { error } = await supabase
         .from('user_push_tokens')
         .upsert({
-          user_id: appUserId,
+          user_id: user.id,
           subscription_data: subscription.toJSON() as any
         });
 
@@ -148,19 +146,19 @@ export const useWebPush = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, appUserId, toast, vapidPublicKey]);
+  }, [user, toast, vapidPublicKey]);
 
   const unsubscribe = useCallback(async () => {
-    if (!user || !appUserId) return;
+    if (!user) return;
 
     setIsLoading(true);
 
     try {
-      // Remove from Supabase using app user ID
+      // Remove from Supabase - user.id IS the app_users.id
       const { error } = await supabase
         .from('user_push_tokens')
         .delete()
-        .eq('user_id', appUserId);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -185,17 +183,17 @@ export const useWebPush = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, appUserId, toast]);
+  }, [user, toast]);
 
   const checkSubscription = useCallback(async () => {
-    if (!user || !appUserId) return;
+    if (!user) return;
 
     try {
-      // Query using app user ID and expect array response
+      // Query using user.id and expect array response
       const { data, error } = await supabase
         .from('user_push_tokens')
         .select('subscription_data')
-        .eq('user_id', appUserId);
+        .eq('user_id', user.id);
 
       if (error) throw error;
       
@@ -205,7 +203,7 @@ export const useWebPush = () => {
       console.error('Error checking subscription:', error);
       setIsSubscribed(false);
     }
-  }, [user, appUserId]);
+  }, [user]);
 
   const testNotification = useCallback(async () => {
     if (!isSubscribed || !user) {

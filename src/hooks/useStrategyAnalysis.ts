@@ -58,17 +58,11 @@ export const useStrategyAnalysis = () => {
     try {
       console.log('Starting strategy analysis...', { selectedStrategyIds, dateRange });
 
-      // Get user profile
+      // Get user profile - user.id IS the app_users.id
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: appUser } = await supabase
-        .from('app_users')
-        .select('user_id')
-        .eq('auth_id', user.id)
-        .single();
-
-      if (!appUser) throw new Error('User profile not found');
+      const appUserId = user.id; // No need for separate query
 
       // Filter selected strategies
       const selectedStrategies = selectedStrategyIds.length > 0
@@ -80,7 +74,7 @@ export const useStrategyAnalysis = () => {
       }
 
       // Fetch all trades and filter by strategies and date range
-      const allTrades = await fetchTrades(appUser.user_id);
+      const allTrades = await fetchTrades(appUserId);
       const strategyTrades = allTrades.filter(trade => {
         const matchesStrategy = selectedStrategies.some(s => s.strategy_id === trade.strategy_id);
         if (!matchesStrategy) return false;

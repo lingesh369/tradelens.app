@@ -1,3 +1,4 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from './cors.ts';
 
 export function successResponse(data: any, status = 200) {

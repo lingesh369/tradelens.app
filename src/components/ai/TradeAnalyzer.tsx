@@ -10,15 +10,12 @@ import { AnalysisSection } from '@/components/ai/AnalysisSection';
 import { generateTradesCsv, generateTradesSummary, AnalysisFilters } from '@/services/ai/fileBasedAnalysis';
 import { analyzeWithGPT, generateTradeAnalysisPrompt, GPTAnalysisResponse } from '@/services/ai/gptIntegration';
 
-// Helper function to get today's date range
-const getTodayDateRange = (): DateRange => {
-  const today = new Date();
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+// Helper function to get all time date range
+const getAllTimeRange = (): DateRange => {
   return {
-    from: startOfDay,
-    to: endOfDay,
-    preset: "today"
+    from: new Date(2000, 0, 1), // Far past date for "All Time"
+    to: new Date(2099, 11, 31), // Far future date for "All Time"
+    preset: "allTime"
   };
 };
 export const TradeAnalyzer: React.FC = () => {
@@ -30,8 +27,8 @@ export const TradeAnalyzer: React.FC = () => {
     toast
   } = useToast();
 
-  // Set default date range to today
-  const [dateRange, setDateRange] = useState<DateRange>(getTodayDateRange());
+  // Set default date range to all time
+  const [dateRange, setDateRange] = useState<DateRange>(getAllTimeRange());
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [filteredTrades, setFilteredTrades] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -167,7 +164,7 @@ ${analysisResult.analysis}
               <label className="text-sm font-medium">Date Range</label>
               <DateRangeSelector onChange={setDateRange} value={dateRange} className="w-full" />
               <p className="text-xs text-muted-foreground">
-                Analysis starts with today by default. Expand range as needed.
+                Analysis includes all trades by default. Adjust range as needed.
               </p>
             </div>
             
@@ -179,7 +176,7 @@ ${analysisResult.analysis}
               
               
               {filteredTrades.length > 0 ? <MultiSelectTrades trades={filteredTrades} selectedTrades={selectedTrades} onSelectionChange={setSelectedTrades} /> : <div className="p-4 text-center text-muted-foreground bg-muted/50 rounded-lg">
-                  No trades found for the selected date range. Try expanding the date range or check if you have trades for today.
+                  No trades found for the selected date range. Try adjusting the date range or add some trades.
                 </div>}
             </div>
           </div>

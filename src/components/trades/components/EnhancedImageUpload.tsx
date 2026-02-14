@@ -13,11 +13,11 @@ interface EnhancedImageUploadProps {
   disabled?: boolean;
 }
 
-export function EnhancedImageUpload({ 
-  images, 
-  onImagesChange, 
+export function EnhancedImageUpload({
+  images,
+  onImagesChange,
   maxImages = 4,
-  disabled = false 
+  disabled = false
 }: EnhancedImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,7 +25,7 @@ export function EnhancedImageUpload({
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
-    
+
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -40,7 +40,7 @@ export function EnhancedImageUpload({
     }
 
     const filesToUpload = Array.from(files).slice(0, remainingSlots);
-    
+
     setUploading(true);
     const uploadedUrls: string[] = [];
 
@@ -67,7 +67,7 @@ export function EnhancedImageUpload({
         }
 
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
-        
+
         const { data, error } = await supabase.storage
           .from('Trade Images')
           .upload(fileName, file);
@@ -113,7 +113,7 @@ export function EnhancedImageUpload({
 
   const handleRemoveImage = (indexToRemove: number) => {
     if (disabled) return;
-    
+
     const newImages = images.filter((_, index) => index !== indexToRemove);
     onImagesChange(newImages);
   };
@@ -190,7 +190,7 @@ export function EnhancedImageUpload({
           </div>
         </Card>
       )}
-      
+
       {!disabled && (
         <p className="text-xs text-muted-foreground">
           You can upload up to {maxImages} images. Maximum file size: 5MB per image.

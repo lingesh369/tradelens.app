@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 // Function to safely get the current user's profile data
 export const getUserProfile = async (userId: string) => {
   try {
-    // Query the app_users table directly instead of using RPC
+    // Query the app_users table - userId is the same as app_users.id
     const { data, error } = await supabase
       .from('app_users')
       .select('*')
-      .eq('auth_id', userId)
+      .eq('id', userId)
       .single();
       
     if (error) {
@@ -44,7 +44,7 @@ export const updateUserProfile = async (
     const { data, error } = await supabase
       .from('app_users')
       .update(dbUpdates)
-      .eq('auth_id', userId)
+      .eq('id', userId)
       .select();
       
     if (error) {

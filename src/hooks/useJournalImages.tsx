@@ -7,6 +7,7 @@ import { ImageUploadService } from "@/services/imageUploadService";
 
 export interface JournalImage {
   id: string;
+  journal_id: string;
   user_id: string;
   journal_date: string;
   image_url: string;
@@ -27,10 +28,10 @@ export function useJournalImages() {
   const { profile } = useUserProfile();
 
   const fetchImagesForDate = useCallback(async (date: Date) => {
-    if (!profile?.user_id) return;
+    if (!profile?.id) return;
     
     const dateStr = date.toISOString().split('T')[0];
-    const cacheKey = `${profile.user_id}-${dateStr}`;
+    const cacheKey = `${profile.id}-${dateStr}`;
     
     // Check cache first
     if (imageCache.has(cacheKey)) {
@@ -43,7 +44,7 @@ export function useJournalImages() {
       const { data, error } = await supabase
         .from('journal_images')
         .select('*')
-        .eq('user_id', profile.user_id)
+        .eq('user_id', profile.id)
         .eq('journal_date', dateStr)
         .order('created_at', { ascending: true });
 
@@ -61,16 +62,16 @@ export function useJournalImages() {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.user_id, toast]);
+  }, [profile?.id, toast]);
 
   const fetchImagesForTrade = useCallback(async (tradeId: string) => {
-    if (!profile?.user_id) return [];
+    if (!profile?.id) return [];
     
     try {
       const { data, error } = await supabase
         .from('journal_images')
         .select('*')
-        .eq('user_id', profile.user_id)
+        .eq('user_id', profile.id)
         .eq('linked_trade_id', tradeId)
         .order('created_at', { ascending: true });
 
@@ -79,10 +80,10 @@ export function useJournalImages() {
     } catch (error: any) {
       return [];
     }
-  }, [profile?.user_id]);
+  }, [profile?.id]);
 
   const uploadImage = useCallback(async (file: File, journalDate: Date): Promise<JournalImage | null> => {
-    if (!profile?.user_id || !profile?.auth_id) {
+    if (!profile?.id) {
       toast({
         title: "Error",
         description: "User not authenticated",
@@ -101,9 +102,51 @@ export function useJournalImages() {
         throw new Error('Image size must be less than 10MB');
       }
 
+      const dateStr = journalDate.toISOString().split('T')[0];
+
+      // First, ensure a journal entry exists for this date
+      let journalId: string;
+      
+      const { data: existingJournal, error: journalFetchError } = await supabase
+        .from('journal')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('journal_date', dateStr)
+        .maybeSingle();
+
+      if (journalFetchError) throw journalFetchError;
+
+      if (existingJournal) {
+        journalId = existingJournal.id;
+      } else {
+        // Create a new journal entry
+        const { data: newJournal, error: journalCreateError } = await supabase
+          .from('journal')
+          .insert([{
+            user_id: profile.id,
+            journal_date: dateStr,
+            notes: '',
+            net_pl: 0,
+            num_trades: 0,
+            win_rate: 0,
+            profit_factor: 1,
+            winning_trades: 0,
+            losing_trades: 0,
+            total_profitable_pl: 0,
+            total_losing_pl: 0,
+            total_fees: 0,
+            image_captions: {}
+          }])
+          .select('id')
+          .single();
+
+        if (journalCreateError) throw journalCreateError;
+        journalId = newJournal.id;
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `${profile.auth_id}/${fileName}`;
+      const filePath = `${profile.id}/${fileName}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -120,10 +163,11 @@ export function useJournalImages() {
         .from('journal-images')
         .getPublicUrl(filePath);
 
-      // Save to database
+      // Save to database with journal_id
       const insertData = {
-        user_id: profile.user_id,
-        journal_date: journalDate.toISOString().split('T')[0],
+        journal_id: journalId,
+        user_id: profile.id,
+        journal_date: dateStr,
         image_url: publicUrl,
         image_name: fileName,
         notes: null,
@@ -144,8 +188,7 @@ export function useJournalImages() {
       }
 
       // Update cache and local state
-      const dateStr = journalDate.toISOString().split('T')[0];
-      const cacheKey = `${profile.user_id}-${dateStr}`;
+      const cacheKey = `${profile.id}-${dateStr}`;
       const cachedImages = imageCache.get(cacheKey) || [];
       const updatedImages = [...cachedImages, data];
       imageCache.set(cacheKey, updatedImages);
@@ -165,7 +208,7 @@ export function useJournalImages() {
       });
       return null;
     }
-  }, [profile?.user_id, profile?.auth_id, toast]);
+  }, [profile?.id, toast]);
 
   const updateImageNotes = useCallback(async (imageId: string, notes: string) => {
     try {
@@ -228,13 +271,13 @@ export function useJournalImages() {
   }, [toast]);
 
   const deleteImage = useCallback(async (imageId: string, imageName: string) => {
-    if (!profile?.auth_id) return;
+    if (!profile?.id) return;
 
     try {
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('journal-images')
-        .remove([`${profile.auth_id}/${imageName}`]);
+        .remove([`${profile.id}/${imageName}`]);
 
       if (storageError) {
         // Continue with database deletion even if storage fails
@@ -268,7 +311,7 @@ export function useJournalImages() {
         variant: "destructive"
       });
     }
-  }, [profile?.auth_id, toast]);
+  }, [profile?.id, toast]);
 
   return {
     images,
@@ -281,3 +324,5 @@ export function useJournalImages() {
     deleteImage
   };
 }
+
+

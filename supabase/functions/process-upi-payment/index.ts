@@ -8,9 +8,9 @@ Deno.serve(async (req) => {
 
   try {
     const { user } = await verifyAuth(req);
-    const { upiId, amount, planId, billingCycle } = await req.json();
+    const { orderNumber, amount, planId, billingCycle } = await req.json();
 
-    if (!upiId || !amount || !planId || !billingCycle) {
+    if (!orderNumber || !amount || !planId || !billingCycle) {
       return errorResponse('Missing required fields');
     }
 
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
         payment_provider: 'upi',
         status: 'pending',
         transaction_id: `UPI_${Date.now()}`,
-        payment_details: { upi_id: upiId },
+        payment_details: { order_number: orderNumber },
       })
       .select()
       .single();

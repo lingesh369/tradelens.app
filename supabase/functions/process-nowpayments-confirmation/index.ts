@@ -17,66 +17,73 @@ Deno.serve(async (req) => {
 
     console.log('Processing NOWPayments confirmation for invoice:', invoice_id);
 
+    // Fetch latest status
     const invoiceStatus = await getNowPaymentsInvoiceStatus(invoice_id);
     const supabase = createServiceClient();
 
-    // Find payment by order_id
+    // Find payment by invoice_id (gateway_order_id)
     let { data: payment } = await supabase
-      .from('payments')
+      .from('payment_history')
       .select('*')
-      .eq('transaction_id', invoiceStatus.order_id)
-      .eq('user_id', user.id)
+      .eq('gateway_order_id', invoice_id) // We store invoice.id here
       .single();
 
     if (!payment) {
-      return errorResponse('Payment not found', 404);
+        // Fallback search by order_id (legacy)
+        const { data: legacyPayment } = await supabase
+            .from('payment_history')
+            .select('*')
+            .eq('transaction_id', invoiceStatus.order_id)
+            .single();
+        payment = legacyPayment;
     }
 
-    // Map NOWPayments status to our status
-    const paymentStatus = invoiceStatus.payment_status === 'finished' ? 'completed' :
-                         invoiceStatus.payment_status === 'partially_paid' ? 'pending' :
-                         invoiceStatus.payment_status === 'waiting' ? 'pending' :
-                         invoiceStatus.payment_status === 'confirming' ? 'pending' :
-                         invoiceStatus.payment_status === 'sending' ? 'pending' : 'failed';
+    if (!payment) {
+      return errorResponse('Payment record not found', 404);
+    }
 
+    if (payment.user_id !== user.id) {
+        return errorResponse('Unauthorized', 403);
+    }
+
+    // Map NOWPayments status
+    const paymentStatus = invoiceStatus.payment_status === 'finished' ? 'succeeded' :
+                         (invoiceStatus.payment_status === 'waiting' || invoiceStatus.payment_status === 'confirming' || invoiceStatus.payment_status === 'sending' || invoiceStatus.payment_status === 'partially_paid') ? 'pending' : 'failed';
+
+    // Update payment record
     await supabase
-      .from('payments')
+      .from('payment_history')
       .update({
         status: paymentStatus,
-        payment_details: invoiceStatus,
-        updated_at: new Date().toISOString(),
+        metadata: { ...payment.metadata, nowpayments: invoiceStatus },
+        paid_at: paymentStatus === 'succeeded' ? new Date().toISOString() : null,
       })
       .eq('id', payment.id);
 
-    // If payment successful, activate subscription
+    // If finished, activate subscription
     if (invoiceStatus.payment_status === 'finished') {
-      const startDate = new Date();
-      const endDate = new Date(startDate);
+      const planId = payment.metadata?.plan_id;
+      const billingCycle = payment.metadata?.billing_cycle;
       
-      if (payment.billing_cycle === 'monthly') {
-        endDate.setMonth(endDate.getMonth() + 1);
-      } else if (payment.billing_cycle === 'yearly') {
-        endDate.setFullYear(endDate.getFullYear() + 1);
+      if (planId && billingCycle) {
+          const { error: processError } = await supabase.functions.invoke('process-payment-success', {
+            body: {
+              userId: user.id,
+              planId: planId,
+              billingCycle: billingCycle,
+              amount: parseFloat(invoiceStatus.pay_amount || invoiceStatus.price_amount),
+              paymentMethod: 'crypto',
+              transactionId: invoiceStatus.payment_id?.toString() || invoice_id.toString(),
+              providerRef: invoice_id.toString()
+            }
+          });
+          
+          if (processError) {
+             console.error('Error activating subscription via confirmation:', processError);
+             return errorResponse('Failed to activate subscription', 500);
+          }
       }
-
-      const { error: subError } = await supabase
-        .from('subscriptions')
-        .upsert({
-          user_id: user.id,
-          plan_id: payment.plan_id,
-          status: 'active',
-          current_period_start: startDate.toISOString(),
-          current_period_end: endDate.toISOString(),
-          billing_cycle: payment.billing_cycle,
-          payment_provider: 'nowpayments',
-          updated_at: new Date().toISOString(),
-        });
-
-      if (subError) {
-        console.error('Error creating subscription:', subError);
-        return errorResponse('Failed to activate subscription', 500);
-      }
-
+      
       return successResponse({
         success: true,
         status: 'completed',
@@ -88,6 +95,7 @@ Deno.serve(async (req) => {
       success: invoiceStatus.payment_status === 'finished',
       status: paymentStatus,
       payment_status: invoiceStatus.payment_status,
+      invoice_url: invoiceStatus.invoice_url
     });
   } catch (error) {
     console.error('Error processing NOWPayments confirmation:', error);

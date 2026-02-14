@@ -112,8 +112,12 @@ export function useTrades() {
 
       return updateTrade(processedData);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Trade updated successfully:', data);
+      // Invalidate and refetch trades immediately
       queryClient.invalidateQueries({ queryKey: ["trades", userId] });
+      queryClient.refetchQueries({ queryKey: ["trades", userId] });
+      console.log('Refetching trades for user:', userId);
       toast({
         title: "Trade updated successfully",
       });

@@ -70,13 +70,25 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
   // Convert trade data to form format
   useEffect(() => {
     if (isOpen && tradeData) {
+      console.log('TradeEditModal - Loading trade data:', tradeData);
+      
       const entryDateTime = new Date(tradeData.entryDate);
       const entryTime = entryDateTime.toTimeString().slice(0, 5);
+
+      // Normalize action: convert "long"/"short" to "buy"/"sell" for the form
+      const normalizeAction = (action: string): "buy" | "sell" => {
+        const lowerAction = action.toLowerCase();
+        if (lowerAction === "long" || lowerAction === "buy") return "buy";
+        if (lowerAction === "short" || lowerAction === "sell") return "sell";
+        return "buy"; // default fallback
+      };
+
+      const mainAction = normalizeAction(tradeData.action);
 
       // Create main entry row
       const mainRow: TradeRow = {
         id: uuidv4(),
-        action: tradeData.action as "buy" | "sell",
+        action: mainAction,
         date: entryDateTime,
         time: entryTime,
         quantity: tradeData.quantity,
@@ -87,30 +99,34 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
       const tradeRows: TradeRow[] = [mainRow];
 
       // Add partial exits if they exist
-      if (tradeData.partialExits && tradeData.partialExits.length > 0) {
+      if (tradeData.partialExits && Array.isArray(tradeData.partialExits) && tradeData.partialExits.length > 0) {
+        console.log('TradeEditModal - Processing partial exits:', tradeData.partialExits);
+        
         tradeData.partialExits.forEach(exit => {
           const exitDateTime = new Date(exit.datetime);
           const exitTime = exitDateTime.toTimeString().slice(0, 5);
           
           tradeRows.push({
             id: uuidv4(),
-            action: exit.action as "buy" | "sell",
+            action: normalizeAction(exit.action),
             date: exitDateTime,
             time: exitTime,
             quantity: exit.quantity,
             price: exit.price,
-            fee: exit.fee,
+            fee: exit.fee || 0,
           });
         });
       } else if (tradeData.exitPrice && tradeData.exitDate) {
         // Add full exit if no partial exits but has exit data
+        console.log('TradeEditModal - Adding full exit row');
+        
         const exitDateTime = new Date(tradeData.exitDate);
         const exitTime = exitDateTime.toTimeString().slice(0, 5);
-        const oppositeAction = tradeData.action === "buy" ? "sell" : "buy";
+        const oppositeAction = mainAction === "buy" ? "sell" : "buy";
         
         tradeRows.push({
           id: uuidv4(),
-          action: oppositeAction as "buy" | "sell",
+          action: oppositeAction,
           date: exitDateTime,
           time: exitTime,
           quantity: tradeData.quantity,
@@ -119,7 +135,10 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
         });
       }
 
-      form.reset({
+      console.log('TradeEditModal - Trade rows prepared:', tradeRows);
+      console.log('TradeEditModal - Market type:', tradeData.marketType);
+
+      const formData = {
         accountId: tradeData.accountId || "",
         strategy: tradeData.strategy || "",
         marketType: tradeData.marketType || "Stock",
@@ -133,7 +152,10 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
         tags: [],
         mainImage: "",
         additionalImages: [],
-      });
+      };
+
+      console.log('TradeEditModal - Resetting form with data:', formData);
+      form.reset(formData);
     }
   }, [isOpen, tradeData, form]);
 
@@ -218,6 +240,9 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
       const mainAction = rows[0].action;
       const oppositeAction = mainAction === "buy" ? "sell" : "buy";
       
+      // Convert form action (buy/sell) back to database format (long/short for main position)
+      const dbMainAction = mainAction === "buy" ? "long" : "short";
+      
       // Separate main position rows from exit rows
       const mainRows = rows.filter(row => row.action === mainAction);
       const exitRows = rows.filter(row => row.action === oppositeAction);
@@ -275,17 +300,18 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
       });
 
       const updatedTradeData = {
-        trade_id: tradeData.id, // Include trade_id in the data object
+        id: tradeData.id, // Use 'id' not 'trade_id' for updateTrade
         market_type: data.marketType,
         account_id: data.accountId,
         instrument: data.symbol,
-        action: mainAction,
+        action: dbMainAction, // Use database format (long/short)
         quantity: totalMainQuantity,
         entry_price: weightedEntryPrice,
         exit_price: exitRows.length > 0 ? weightedExitPrice : null,
         entry_time: entryDateTime.toISOString(),
         exit_time: exitDateTime ? exitDateTime.toISOString() : null,
         fees: totalFees,
+        commission: 0, // Separate commission if needed
         strategy_id: data.strategy && data.strategy !== "none" ? data.strategy : null,
         sl: data.stopLoss || null,
         target: data.target || null,
@@ -294,7 +320,10 @@ export function TradeEditModal({ isOpen, onClose, tradeData, onSave }: TradeEdit
         status: status,
         total_exit_quantity: totalExitQuantity,
         partial_exits: partialExits.length > 0 ? partialExits : null,
+        trade_date: entryDateTime.toISOString().split('T')[0], // Add trade_date
       };
+
+      console.log('Updating trade with data:', updatedTradeData);
 
       // Update the trade
       await updateTrade(updatedTradeData);

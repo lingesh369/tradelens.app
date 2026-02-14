@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { TradeDetailHeader } from "./components/TradeDetailHeader";
@@ -104,7 +104,7 @@ export function TradeDetail({
   const { profile } = useUserProfile();
   const { toast } = useToast();
   const { updateTrade, deleteTrade, VALID_MARKET_TYPES } = useTrades();
-  
+
   // Use shared trade owner data if available, otherwise use hooks
   const { accounts } = useAccounts();
   const { tags } = useTags();
@@ -142,7 +142,7 @@ export function TradeDetail({
         exitTime: exitDateTime.toTimeString().slice(0, 5) // HH:MM format
       };
     }
-    
+
     // Use actual exit time from database if available
     if (actualExitTime) {
       const exitDateTime = new Date(actualExitTime);
@@ -151,13 +151,13 @@ export function TradeDetail({
         exitTime: exitDateTime.toTimeString().slice(0, 5) // HH:MM format
       };
     }
-    
+
     // No exit data available
     return { exitDate: null, exitTime: null };
   };
 
   const { exitDate: calculatedExitDate, exitTime: calculatedExitTime } = getExitDateTime();
-  
+
   // Store original values for discard functionality - using safe fallbacks
   const originalValuesRef = useRef({
     instrument: symbol,
@@ -219,7 +219,7 @@ export function TradeDetail({
   // Update state when props change to ensure real-time updates
   useEffect(() => {
     const { exitDate: newExitDate, exitTime: newExitTime } = getExitDateTime();
-    
+
     setEditValues(prev => ({
       ...prev,
       instrument: symbol,
@@ -237,13 +237,13 @@ export function TradeDetail({
       target: target || null,
       fees: fees
     }));
-    
+
     setSelectedTimeframe(timeframe || "15min");
     setSelectedAccount(accountId || "none");
     setSelectedStrategy(strategy || "none");
     setTradeNotes(notes);
     setTradeRating(propTradeRating || 0);
-    
+
     // Update original values reference
     originalValuesRef.current = {
       ...originalValuesRef.current,
@@ -273,39 +273,39 @@ export function TradeDetail({
   useEffect(() => {
     const loadTradeData = async () => {
       if (!id) return;
-      
+
       try {
         const { data: tradeData, error } = await supabase
           .from('trades')
           .select('exit_time, commission, fees, trade_time_frame, trade_rating, market_type, tags, main_image, additional_images')
-          .eq('trade_id', id)
+          .eq('id', id)
           .single();
-          
+
         if (error) {
           console.error('Error loading trade data:', error);
           return;
         }
-        
+
         if (tradeData) {
           if (tradeData.exit_time) {
             setActualExitTime(tradeData.exit_time);
           }
-          
+
           // Set the original commission and fees from database
           const dbCommission = Math.abs(tradeData.commission || 0);
           const dbFees = Math.abs(tradeData.fees || 0);
-          
+
           setOriginalCommission(dbCommission);
           setOriginalFees(dbFees);
-          
+
           // Set the timeframe from database
           const dbTimeframe = tradeData.trade_time_frame || timeframe || "15min";
           setSelectedTimeframe(dbTimeframe);
-          
+
           // Set the trade rating from database
           const dbRating = tradeData.trade_rating || 0;
           setTradeRating(dbRating);
-          
+
           // Update edit values with actual database values
           setEditValues(prev => ({
             ...prev,
@@ -313,7 +313,7 @@ export function TradeDetail({
             fees: dbFees,
             marketType: tradeData.market_type || "Stock"
           }));
-          
+
           // Update original values reference
           originalValuesRef.current.commission = dbCommission;
           originalValuesRef.current.fees = dbFees;
@@ -334,17 +334,17 @@ export function TradeDetail({
               console.error('Error parsing tags:', e);
               parsedTags = [];
             }
-            
+
             console.log('Loaded trade tags:', parsedTags);
             setSelectedTags(parsedTags);
             originalValuesRef.current.tags = [...parsedTags];
           }
-          
+
           // Set main image
           if (tradeData.main_image) {
             setMainImage(String(tradeData.main_image));
           }
-          
+
           // Parse and set additional images
           if (tradeData.additional_images) {
             let parsedImages = [];
@@ -358,14 +358,14 @@ export function TradeDetail({
               console.error('Error parsing additional images:', e);
               parsedImages = [];
             }
-            
+
             setAdditionalImages(parsedImages.map(String));
           }
         }
-        
+
         // Mark as initialized after loading data - this prevents the glitch
         setIsInitialized(true);
-        
+
         // Set fully loaded after a small delay to ensure all state updates are complete
         setTimeout(() => {
           setIsFullyLoaded(true);
@@ -378,7 +378,7 @@ export function TradeDetail({
         }, 100);
       }
     };
-    
+
     loadTradeData();
   }, [id, timeframe]);
 
@@ -386,19 +386,19 @@ export function TradeDetail({
   useEffect(() => {
     const loadShareStatus = async () => {
       if (!id) return;
-      
+
       try {
         const { data: tradeData, error } = await supabase
           .from('trades')
           .select('is_shared')
-          .eq('trade_id', id)
+          .eq('id', id)
           .single();
-          
+
         if (error) {
           console.error('Error loading share status:', error);
           return;
         }
-        
+
         if (tradeData) {
           setIsShared(tradeData.is_shared || false);
         }
@@ -406,7 +406,7 @@ export function TradeDetail({
         console.error("Error loading share status:", error);
       }
     };
-    
+
     loadShareStatus();
   }, [id]);
 
@@ -418,7 +418,7 @@ export function TradeDetail({
       exitDate,
       exitTime
     }));
-    
+
     // Update original values as well
     originalValuesRef.current.exitDate = exitDate;
     originalValuesRef.current.exitTime = exitTime;
@@ -434,7 +434,7 @@ export function TradeDetail({
 
     const checkForChanges = () => {
       const original = originalValuesRef.current;
-      
+
       // Create normalized comparison objects
       const currentValues = {
         instrument: editValues.instrument,
@@ -459,18 +459,18 @@ export function TradeDetail({
         tags: selectedTags.sort(),
         tradeRating: tradeRating
       };
-      
+
       const originalNormalized = {
         ...original,
         tags: (original.tags || []).sort()
       };
-      
+
       // Deep comparison
       const hasActualChanges = JSON.stringify(originalNormalized) !== JSON.stringify(currentValues);
-      
+
       setHasChanges(hasActualChanges);
     };
-    
+
     checkForChanges();
   }, [
     editValues,
@@ -493,10 +493,10 @@ export function TradeDetail({
       });
       return;
     }
-    
+
     try {
       setIsSaving(true);
-      
+
       // Validate timeframe before saving
       let validTimeframe = selectedTimeframe;
       if (!VALID_TRADE_TIMEFRAMES.includes(selectedTimeframe)) {
@@ -504,7 +504,7 @@ export function TradeDetail({
         console.warn(`Invalid timeframe selected: ${selectedTimeframe}. Using default: 15min`);
         setSelectedTimeframe("15min");
       }
-      
+
       if (onSave) {
         await onSave({
           id,
@@ -528,7 +528,7 @@ export function TradeDetail({
           additional_images: additionalImages,
           trade_rating: tradeRating
         });
-        
+
         // Update original values after successful save
         originalValuesRef.current = {
           instrument: editValues.instrument,
@@ -553,9 +553,9 @@ export function TradeDetail({
           tags: [...selectedTags],
           tradeRating: tradeRating
         };
-        
+
         setHasChanges(false);
-        
+
         if (!isAutoSave) {
           toast({
             title: "Trade updated",
@@ -564,7 +564,7 @@ export function TradeDetail({
         }
         return;
       }
-      
+
       // Validate market type as well
       let validMarketType = editValues.marketType;
       if (!VALID_MARKET_TYPES.includes(editValues.marketType)) {
@@ -575,9 +575,9 @@ export function TradeDetail({
           variant: "destructive"
         });
       }
-      
+
       const tradeUpdateData = {
-        trade_id: id,
+        id: id,
         instrument: editValues.instrument,
         action: editValues.action,
         market_type: validMarketType,
@@ -598,10 +598,10 @@ export function TradeDetail({
         additional_images: additionalImages,
         trade_rating: tradeRating
       };
-      
+
       console.log('Saving trade with data:', tradeUpdateData);
       await updateTrade(tradeUpdateData);
-      
+
       // Update original values after successful save
       originalValuesRef.current = {
         instrument: editValues.instrument,
@@ -626,9 +626,9 @@ export function TradeDetail({
         tags: [...selectedTags],
         tradeRating: tradeRating
       };
-      
+
       setHasChanges(false);
-      
+
       if (!isAutoSave) {
         toast({
           title: "Trade updated",
@@ -658,9 +658,9 @@ export function TradeDetail({
       });
       return;
     }
-    
+
     const original = originalValuesRef.current;
-    
+
     // Reset all values to original
     setEditValues({
       instrument: original.instrument,
@@ -679,7 +679,7 @@ export function TradeDetail({
       commission: original.commission,
       fees: original.fees
     });
-    
+
     setSelectedTimeframe(original.timeframe);
     setSelectedAccount(original.accountId);
     setSelectedStrategy(original.strategy);
@@ -687,7 +687,7 @@ export function TradeDetail({
     setSelectedTags([...original.tags]);
     setTradeRating(original.tradeRating);
     setHasChanges(false);
-    
+
     toast({
       title: "Changes discarded",
       description: "All unsaved changes have been discarded"
@@ -703,7 +703,7 @@ export function TradeDetail({
       });
       return;
     }
-    
+
     try {
       await deleteTrade(id);
       onBack();
@@ -726,7 +726,7 @@ export function TradeDetail({
       onBack();
       return;
     }
-    
+
     if (hasChanges) {
       // Show a toast notification instead of a popup
       toast({
@@ -742,10 +742,10 @@ export function TradeDetail({
 
   const handleShareToggle = async (shared: boolean) => {
     if (isReadOnly) return;
-    
+
     try {
       // Check if user profile is available
-      if (!profile?.user_id) {
+      if (!profile?.id) {
         console.error("User profile not found");
         toast({
           title: "Error",
@@ -760,11 +760,11 @@ export function TradeDetail({
         .update({
           is_shared: shared,
           shared_at: shared ? new Date().toISOString() : null,
-          shared_by_user_id: shared ? profile.user_id : null
+          shared_by_user_id: shared ? profile.id : null
         })
-        .eq('trade_id', id)
-        .eq('user_id', profile.user_id);
-        
+        .eq('id', id)
+        .eq('user_id', profile.id);
+
       if (error) {
         console.error("Error updating share status:", error);
         toast({
@@ -774,9 +774,9 @@ export function TradeDetail({
         });
         return;
       }
-      
+
       setIsShared(shared);
-      
+
       toast({
         title: shared ? "Trade shared" : "Sharing disabled",
         description: shared ? "Trade is now publicly accessible" : "Trade is no longer shared"
@@ -795,20 +795,20 @@ export function TradeDetail({
   useEffect(() => {
     const loadTradeMetadata = async () => {
       if (!id) return;
-      
+
       try {
         // Load trade data to get tags, images, and rating
         const { data: tradeData, error } = await supabase
           .from('trades')
           .select('tags, main_image, additional_images, trade_rating')
-          .eq('trade_id', id)
+          .eq('id', id)
           .single();
-          
+
         if (error) {
           console.error('Error loading trade metadata:', error);
           return;
         }
-        
+
         if (tradeData) {
           // Parse and set tags
           if (tradeData.tags) {
@@ -823,17 +823,17 @@ export function TradeDetail({
               console.error('Error parsing tags:', e);
               parsedTags = [];
             }
-            
+
             console.log('Loaded trade tags:', parsedTags);
             setSelectedTags(parsedTags);
             originalValuesRef.current.tags = [...parsedTags];
           }
-          
+
           // Set main image
           if (tradeData.main_image) {
             setMainImage(String(tradeData.main_image));
           }
-          
+
           // Parse and set additional images
           if (tradeData.additional_images) {
             let parsedImages = [];
@@ -847,17 +847,17 @@ export function TradeDetail({
               console.error('Error parsing additional images:', e);
               parsedImages = [];
             }
-            
+
             setAdditionalImages(parsedImages.map(String));
           }
-          
+
           // Set trade rating
           if (tradeData.trade_rating !== null && tradeData.trade_rating !== undefined) {
             setTradeRating(tradeData.trade_rating);
             originalValuesRef.current.tradeRating = tradeData.trade_rating;
           }
         }
-        
+
         // Mark as initialized after loading data
         setIsInitialized(true);
       } catch (error) {
@@ -865,7 +865,7 @@ export function TradeDetail({
         setIsInitialized(true);
       }
     };
-    
+
     loadTradeMetadata();
   }, [id]);
 
@@ -900,7 +900,7 @@ export function TradeDetail({
         hideBackButton={hideBackButton}
         breadcrumbElement={breadcrumbElement}
       />
-      
+
       <TradeDetailHeader
         instrument={editValues.instrument}
         action={editValues.action}
@@ -951,7 +951,7 @@ export function TradeDetail({
         onSave={() => handleSave(false)}
         isReadOnly={isReadOnly}
       />
-      
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -1018,10 +1018,10 @@ export function TradeDetail({
               additional_images: updatedTrade.additional_images || [],
               trade_rating: updatedTrade.trade_rating || null
             };
-            
+
             await onSave(mappedTradeData);
           }
-          
+
           setEditModalOpen(false);
         }}
       />

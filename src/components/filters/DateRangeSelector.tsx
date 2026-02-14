@@ -18,28 +18,28 @@ interface ExtendedDateRangeSelectorProps extends DateRangeSelectorProps {
 export function DateRangeSelector({ onChange, className, value }: ExtendedDateRangeSelectorProps) {
   // Initialize with provided value or default to "allTime"
   const initialDateRange: DateRange = value || getPresetDateRange("allTime");
-  
+
   const [dateRange, setDateRange] = useState<DateRange>(initialDateRange);
   const [isOpen, setIsOpen] = useState(false);
 
-  console.log("DateRangeSelector - Initial dateRange:", dateRange);
+
 
   // Update local state when value prop changes
   useEffect(() => {
     if (value) {
-      console.log("DateRangeSelector - Updating from value prop:", value);
+
       setDateRange(value);
     }
   }, [value]);
 
   // Apply preset date range
   const applyPreset = (preset: string) => {
-    console.log("DateRangeSelector - Applying preset:", preset);
+
     const newDateRange = getPresetDateRange(preset as DatePreset);
     setDateRange(newDateRange);
-    
-    console.log("DateRangeSelector - Date range set to:", newDateRange);
-    
+
+
+
     onChange(newDateRange);
   };
 
@@ -49,13 +49,13 @@ export function DateRangeSelector({ onChange, className, value }: ExtendedDateRa
 
     if (!dateRange.from || dateRange.to) {
       // If no from date or both dates are set, start new selection
-      const newRange = { 
-        from: date, 
+      const newRange = {
+        from: date,
         to: date,
         preset: "custom" as DatePreset
       };
       setDateRange(newRange);
-      console.log("DateRangeSelector - Started new selection:", newRange);
+
     } else {
       // If from date is set but not to date, complete selection
       const newRange = {
@@ -66,22 +66,22 @@ export function DateRangeSelector({ onChange, className, value }: ExtendedDateRa
       setDateRange(newRange);
       setIsOpen(false);
       onChange(newRange);
-      console.log("DateRangeSelector - Completed selection:", newRange);
+
     }
   };
 
   // Initialize with default range only if no value is provided
   useEffect(() => {
     if (!value) {
-      console.log("DateRangeSelector - Initializing with default range:", dateRange);
+
       onChange(dateRange);
     }
   }, []);
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
-      <Select 
-        value={dateRange.preset} 
+      <Select
+        value={dateRange.preset}
         onValueChange={applyPreset}
       >
         <SelectTrigger className="w-[150px]">
@@ -127,7 +127,7 @@ export function DateRangeSelector({ onChange, className, value }: ExtendedDateRa
                   setDateRange(newRange);
                   setIsOpen(false);
                   onChange(newRange);
-                  console.log("DateRangeSelector - Range selected:", newRange);
+
                 }
               }
             }}

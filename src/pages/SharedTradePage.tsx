@@ -60,14 +60,22 @@ const SharedTradePage = () => {
       try {
         setIsLoading(true);
         
-        // Fetch the shared trade with user information
+        // Fetch the shared trade with user information and metrics
         const { data: tradeData, error: tradeError } = await supabase
           .from('trades')
           .select(`
             *,
-            app_users!fk_trades_user_id(username, email, user_id)
+            app_users!user_id(username, email, id),
+            trade_metrics(
+              net_p_and_l,
+              gross_p_and_l,
+              percent_gain,
+              trade_outcome,
+              r2r,
+              trade_duration
+            )
           `)
-          .eq('trade_id', tradeId)
+          .eq('id', tradeId)
           .eq('is_shared', true)
           .single();
           
@@ -87,14 +95,27 @@ const SharedTradePage = () => {
         }
         
         // Set the trade data with proper type casting and JSON deserialization
+        // Extract metrics
+        const metricsRaw = tradeData?.trade_metrics;
+        const metrics = Array.isArray(metricsRaw) ? metricsRaw[0] : metricsRaw;
+        
         const tradeWithSharing: Trade = {
           ...tradeData,
+          // Map metrics fields
+          net_pl: metrics?.net_p_and_l ?? null,
+          percent_gain: metrics?.percent_gain ?? null,
+          trade_result: metrics?.trade_outcome ?? null,
+          r2r: metrics?.r2r ?? null,
+          trade_duration: metrics?.trade_duration ?? null,
+          // Sharing fields
           is_shared: tradeData.is_shared || false,
           shared_at: tradeData.shared_at || null,
           shared_by_user_id: tradeData.shared_by_user_id || null,
+          // Parse JSON fields
           partial_exits: deserializePartialExits(tradeData.partial_exits),
           tags: deserializeTags(tradeData.tags),
           additional_images: deserializeAdditionalImages(tradeData.additional_images),
+          // Ensure proper types
           action: tradeData.action ? tradeData.action.toLowerCase() : "buy",
           commission: tradeData.commission ?? 0,
           fees: tradeData.fees ?? 0,
@@ -111,10 +132,10 @@ const SharedTradePage = () => {
         
         if (userData && Array.isArray(userData) && userData.length > 0) {
           tradeOwnerUsername = userData[0].username || userData[0].email || "Unknown User";
-          tradeOwnerId = userData[0].user_id;
+          tradeOwnerId = userData[0].id;
         } else if (userData && typeof userData === 'object') {
           tradeOwnerUsername = userData.username || userData.email || "Unknown User";
-          tradeOwnerId = userData.user_id;
+          tradeOwnerId = userData.id;
         } else {
           tradeOwnerUsername = "Unknown User";
         }
@@ -127,12 +148,12 @@ const SharedTradePage = () => {
             .from('trader_profiles')
             .select(`
               *,
-              app_users!user_id(
+              app_users(
                 username,
                 email,
                 first_name,
                 last_name,
-                profile_picture_url
+                avatar_url
               )
             `)
             .eq('user_id', tradeOwnerId)
@@ -216,7 +237,7 @@ const SharedTradePage = () => {
           is_shared: shared,
           shared_at: shared ? new Date().toISOString() : null
         })
-        .eq('trade_id', tradeId);
+        .eq('id', tradeId);
         
       if (error) {
         toast({

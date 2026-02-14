@@ -23,47 +23,45 @@ export function useTradeCalculations({
   const { settings } = useGlobalSettings();
 
   const calculateValues = () => {
-    let netPnl = 0;
+    // Normalize action to handle both long/short and buy/sell
+    const normalizedAction = action.toLowerCase();
+    const isLong = normalizedAction === 'long' || normalizedAction === 'buy';
+    
+    let grossPnl = 0;
     let percentGain = 0;
     
     if (exitPrice !== null && entryPrice) {
-      const priceDiff = action === "buy" 
+      // Calculate gross P&L (before fees)
+      const priceDiff = isLong
         ? exitPrice - entryPrice 
         : entryPrice - exitPrice;
-      netPnl = priceDiff * quantity * contractMultiplier;
-      percentGain = (priceDiff / entryPrice) * 100;
+      grossPnl = priceDiff * quantity * contractMultiplier;
+      
+      // Calculate percent gain based on cost basis
+      const costBasis = entryPrice * quantity;
+      percentGain = (grossPnl / costBasis) * 100;
     }
     
+    // Calculate net P&L (after fees)
+    const netPnl = grossPnl - Math.abs(fees);
+    
+    // Calculate trade risk (distance to stop loss)
     let tradeRisk = 0;
     if (stopLoss !== null && entryPrice) {
-      const riskPerUnit = action === "buy" 
+      const riskPerUnit = isLong
         ? entryPrice - stopLoss 
         : stopLoss - entryPrice;
       tradeRisk = Math.abs(riskPerUnit * quantity * contractMultiplier);
     }
     
+    // Calculate R-Multiple (realized R2R)
     let realizedR2R = 0;
-    if (exitPrice !== null && stopLoss !== null && entryPrice) {
-      const gain = action === "buy" 
-        ? exitPrice - entryPrice 
-        : entryPrice - exitPrice;
-      const risk = action === "buy" 
-        ? entryPrice - stopLoss 
-        : stopLoss - entryPrice;
-      
-      if (risk > 0) {
-        realizedR2R = Math.abs(gain / risk);
-      }
+    if (exitPrice !== null && stopLoss !== null && entryPrice && tradeRisk > 0) {
+      realizedR2R = netPnl / tradeRisk;
     }
     
-    // Calculate gross P&L (before fees)
-    const grossPnl = netPnl;
-    
-    // Net P&L is gross P&L minus fees (ensure fees are positive)
-    const finalNetPnl = netPnl - Math.abs(fees);
-    
     return {
-      netPnl: finalNetPnl,
+      netPnl,
       percentGain,
       tradeRisk,
       realizedR2R,

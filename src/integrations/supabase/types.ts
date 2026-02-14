@@ -7,111 +7,272 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
       accounts: {
         Row: {
-          account_id: string
-          account_name: string
+          account_type: string | null
           broker: string | null
           commission: number | null
-          created_on: string | null
+          created_at: string | null
+          currency: string | null
           current_balance: number
           fees: number | null
+          id: string
+          initial_balance: number
+          is_active: boolean | null
+          name: string
+          notes: string | null
           profit_loss: number | null
-          starting_balance: number
-          status: string
-          type: string
-          user_id: string | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
-          account_id?: string
-          account_name: string
+          account_type?: string | null
           broker?: string | null
           commission?: number | null
-          created_on?: string | null
+          created_at?: string | null
+          currency?: string | null
           current_balance?: number
           fees?: number | null
+          id?: string
+          initial_balance?: number
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
           profit_loss?: number | null
-          starting_balance: number
-          status?: string
-          type: string
-          user_id?: string | null
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
-          account_id?: string
-          account_name?: string
+          account_type?: string | null
           broker?: string | null
           commission?: number | null
-          created_on?: string | null
+          created_at?: string | null
+          currency?: string | null
           current_balance?: number
           fees?: number | null
+          id?: string
+          initial_balance?: number
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
           profit_loss?: number | null
-          starting_balance?: number
-          status?: string
-          type?: string
-          user_id?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_accounts_user_id"
+            foreignKeyName: "accounts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      affiliate_commissions: {
+        Row: {
+          affiliate_user_id: string
+          commission_amount: number
+          commission_percentage: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payment_amount: number
+          payment_id: string | null
+          referred_user_id: string
+          status: string | null
+          subscription_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          affiliate_user_id: string
+          commission_amount: number
+          commission_percentage: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_amount: number
+          payment_id?: string | null
+          referred_user_id: string
+          status?: string | null
+          subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          affiliate_user_id?: string
+          commission_amount?: number
+          commission_percentage?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_amount?: number
+          payment_id?: string | null
+          referred_user_id?: string
+          status?: string | null
+          subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_user_id_fkey"
+            columns: ["affiliate_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_affiliate_user_id_fkey"
+            columns: ["affiliate_user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payment_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "active_subscriptions"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "affiliate_commissions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
             referencedColumns: ["id"]
           },
         ]
       }
       app_users: {
         Row: {
-          auth_id: string
+          affiliate_code: string | null
+          avatar_url: string | null
           created_at: string | null
+          display_name: string | null
           email: string
+          email_verified: boolean | null
           first_name: string | null
+          full_name: string | null
           id: string
+          is_active: boolean | null
+          last_login_at: string | null
           last_name: string | null
-          notes: string | null
-          profile_data: Json | null
-          profile_picture_url: string | null
+          onboarding_completed: boolean | null
+          profile_completed: boolean | null
+          referred_by: string | null
+          signup_source: string | null
+          subscription_status: string | null
+          trial_end_date: string | null
           updated_at: string | null
-          user_role: string
-          user_status: string
-          username: string | null
+          user_role: string | null
+          username: string
         }
         Insert: {
-          auth_id: string
+          affiliate_code?: string | null
+          avatar_url?: string | null
           created_at?: string | null
+          display_name?: string | null
           email: string
+          email_verified?: boolean | null
           first_name?: string | null
-          id?: string
+          full_name?: string | null
+          id: string
+          is_active?: boolean | null
+          last_login_at?: string | null
           last_name?: string | null
-          notes?: string | null
-          profile_data?: Json | null
-          profile_picture_url?: string | null
+          onboarding_completed?: boolean | null
+          profile_completed?: boolean | null
+          referred_by?: string | null
+          signup_source?: string | null
+          subscription_status?: string | null
+          trial_end_date?: string | null
           updated_at?: string | null
-          user_role?: string
-          user_status?: string
-          username?: string | null
+          user_role?: string | null
+          username: string
         }
         Update: {
-          auth_id?: string
+          affiliate_code?: string | null
+          avatar_url?: string | null
           created_at?: string | null
+          display_name?: string | null
           email?: string
+          email_verified?: boolean | null
           first_name?: string | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
           last_name?: string | null
-          notes?: string | null
-          profile_data?: Json | null
-          profile_picture_url?: string | null
+          onboarding_completed?: boolean | null
+          profile_completed?: boolean | null
+          referred_by?: string | null
+          signup_source?: string | null
+          subscription_status?: string | null
+          trial_end_date?: string | null
           updated_at?: string | null
-          user_role?: string
-          user_status?: string
-          username?: string | null
+          user_role?: string | null
+          username?: string
         }
         Relationships: []
       }
@@ -119,35 +280,59 @@ export type Database = {
         Row: {
           account_id: string | null
           broker: string | null
-          commission: number
-          commission_id: string
+          commission: number | null
+          commission_type: string
+          commission_value: number
           created_at: string | null
-          fees: number
-          market_type: string
-          total_fees: number
-          user_id: string | null
+          currency: string | null
+          fees: number | null
+          id: string
+          is_active: boolean | null
+          market_type: string | null
+          maximum_commission: number | null
+          minimum_commission: number | null
+          notes: string | null
+          total_fees: number | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
           account_id?: string | null
           broker?: string | null
-          commission?: number
-          commission_id?: string
+          commission?: number | null
+          commission_type: string
+          commission_value: number
           created_at?: string | null
-          fees?: number
-          market_type: string
-          total_fees?: number
-          user_id?: string | null
+          currency?: string | null
+          fees?: number | null
+          id?: string
+          is_active?: boolean | null
+          market_type?: string | null
+          maximum_commission?: number | null
+          minimum_commission?: number | null
+          notes?: string | null
+          total_fees?: number | null
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
           account_id?: string | null
           broker?: string | null
-          commission?: number
-          commission_id?: string
+          commission?: number | null
+          commission_type?: string
+          commission_value?: number
           created_at?: string | null
-          fees?: number
-          market_type?: string
-          total_fees?: number
-          user_id?: string | null
+          currency?: string | null
+          fees?: number | null
+          id?: string
+          is_active?: boolean | null
+          market_type?: string | null
+          maximum_commission?: number | null
+          minimum_commission?: number | null
+          notes?: string | null
+          total_fees?: number | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -155,32 +340,39 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
-            referencedColumns: ["account_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_commissions_user_id"
+            foreignKeyName: "commissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "commissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       community_follows: {
         Row: {
-          created_at: string
+          created_at: string | null
           follower_id: string
           following_id: string
           id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           follower_id: string
           following_id: string
           id?: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           follower_id?: string
           following_id?: string
           id?: string
@@ -194,40 +386,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "community_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "community_follows_following_id_fkey"
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "community_follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       coupon_usage: {
         Row: {
           coupon_id: string
-          created_at: string
-          discount_applied: number
+          discount_amount: number
           id: string
           payment_id: string | null
-          used_at: string
+          subscription_id: string | null
+          used_at: string | null
           user_id: string
         }
         Insert: {
           coupon_id: string
-          created_at?: string
-          discount_applied?: number
+          discount_amount: number
           id?: string
           payment_id?: string | null
-          used_at?: string
+          subscription_id?: string | null
+          used_at?: string | null
           user_id: string
         }
         Update: {
           coupon_id?: string
-          created_at?: string
-          discount_applied?: number
+          discount_amount?: number
           id?: string
           payment_id?: string | null
-          used_at?: string
+          subscription_id?: string | null
+          used_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -242,68 +448,99 @@ export type Database = {
             foreignKeyName: "coupon_usage_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
-            referencedRelation: "payments"
-            referencedColumns: ["payment_id"]
+            referencedRelation: "payment_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "active_subscriptions"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       coupons: {
         Row: {
-          applicable_plans: Json | null
+          applicable_plans: string[] | null
           code: string
-          created_at: string
+          created_at: string | null
           created_by: string | null
-          currency_restriction: string | null
+          currency: string | null
+          currency_restriction: string[] | null
           discount_type: string
           discount_value: number
           id: string
+          is_active: boolean | null
           name: string
           notes: string | null
-          status: string
-          updated_at: string
+          updated_at: string | null
+          usage_count: number | null
           usage_limit_per_user: number | null
           usage_limit_total: number | null
-          used_count: number
-          validity_end_date: string | null
-          validity_start_date: string | null
+          valid_from: string
+          valid_until: string
         }
         Insert: {
-          applicable_plans?: Json | null
+          applicable_plans?: string[] | null
           code: string
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          currency_restriction?: string | null
+          currency?: string | null
+          currency_restriction?: string[] | null
           discount_type: string
           discount_value: number
           id?: string
+          is_active?: boolean | null
           name: string
           notes?: string | null
-          status?: string
-          updated_at?: string
+          updated_at?: string | null
+          usage_count?: number | null
           usage_limit_per_user?: number | null
           usage_limit_total?: number | null
-          used_count?: number
-          validity_end_date?: string | null
-          validity_start_date?: string | null
+          valid_from?: string
+          valid_until: string
         }
         Update: {
-          applicable_plans?: Json | null
+          applicable_plans?: string[] | null
           code?: string
-          created_at?: string
+          created_at?: string | null
           created_by?: string | null
-          currency_restriction?: string | null
+          currency?: string | null
+          currency_restriction?: string[] | null
           discount_type?: string
           discount_value?: number
           id?: string
+          is_active?: boolean | null
           name?: string
           notes?: string | null
-          status?: string
-          updated_at?: string
+          updated_at?: string | null
+          usage_count?: number | null
           usage_limit_per_user?: number | null
           usage_limit_total?: number | null
-          used_count?: number
-          validity_end_date?: string | null
-          validity_start_date?: string | null
+          valid_from?: string
+          valid_until?: string
         }
         Relationships: [
           {
@@ -313,144 +550,386 @@ export type Database = {
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coupons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       email_logs: {
         Row: {
+          bounced_at: string | null
+          clicked_at: string | null
           created_at: string | null
-          email: string | null
+          delivered_at: string | null
+          email_type: string
           error_message: string | null
           id: string
-          response_id: number | null
+          metadata: Json | null
+          opened_at: string | null
+          provider: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_data: Json | null
+          template_id: string | null
           user_id: string | null
         }
         Insert: {
+          bounced_at?: string | null
+          clicked_at?: string | null
           created_at?: string | null
-          email?: string | null
+          delivered_at?: string | null
+          email_type: string
           error_message?: string | null
           id?: string
-          response_id?: number | null
+          metadata?: Json | null
+          opened_at?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          sent_at?: string | null
+          status: string
+          subject?: string | null
+          template_data?: Json | null
+          template_id?: string | null
           user_id?: string | null
         }
         Update: {
+          bounced_at?: string | null
+          clicked_at?: string | null
           created_at?: string | null
-          email?: string | null
+          delivered_at?: string | null
+          email_type?: string
           error_message?: string | null
           id?: string
-          response_id?: number | null
+          metadata?: Json | null
+          opened_at?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          template_id?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      journal: {
-        Row: {
-          all_journal_images_notes: string | null
-          all_trades_notes: string | null
-          image_captions: Json | null
-          journal_date: string | null
-          journal_id: string
-          losing_trades: number | null
-          net_pl: number | null
-          notes: string | null
-          num_trades: number | null
-          profit_factor: number | null
-          total_fees: number | null
-          total_losing_pl: number | null
-          total_profitable_pl: number | null
-          trades_executed: string | null
-          user_id: string | null
-          win_rate: number | null
-          winning_trades: number | null
-        }
-        Insert: {
-          all_journal_images_notes?: string | null
-          all_trades_notes?: string | null
-          image_captions?: Json | null
-          journal_date?: string | null
-          journal_id?: string
-          losing_trades?: number | null
-          net_pl?: number | null
-          notes?: string | null
-          num_trades?: number | null
-          profit_factor?: number | null
-          total_fees?: number | null
-          total_losing_pl?: number | null
-          total_profitable_pl?: number | null
-          trades_executed?: string | null
-          user_id?: string | null
-          win_rate?: number | null
-          winning_trades?: number | null
-        }
-        Update: {
-          all_journal_images_notes?: string | null
-          all_trades_notes?: string | null
-          image_captions?: Json | null
-          journal_date?: string | null
-          journal_id?: string
-          losing_trades?: number | null
-          net_pl?: number | null
-          notes?: string | null
-          num_trades?: number | null
-          profit_factor?: number | null
-          total_fees?: number | null
-          total_losing_pl?: number | null
-          total_profitable_pl?: number | null
-          trades_executed?: string | null
-          user_id?: string | null
-          win_rate?: number | null
-          winning_trades?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_journal_user_id"
+            foreignKeyName: "email_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      email_queue: {
+        Row: {
+          created_at: string | null
+          email_data: Json
+          email_type: string
+          error_message: string | null
+          id: string
+          max_retries: number | null
+          recipient_email: string
+          retry_count: number | null
+          sent_at: string | null
+          status: string
+          subject: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_data?: Json
+          email_type: string
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          recipient_email: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_data?: Json
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          recipient_email?: string
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      error_logs: {
+        Row: {
+          context: Json | null
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          function_name: string
+          id: string
+          occurred_at: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          function_name: string
+          id?: string
+          occurred_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          function_name?: string
+          id?: string
+          occurred_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "error_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      function_logs: {
+        Row: {
+          called_at: string
+          created_at: string
+          duration_ms: number
+          error_message: string | null
+          function_name: string
+          id: string
+          metadata: Json | null
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          called_at?: string
+          created_at?: string
+          duration_ms: number
+          error_message?: string | null
+          function_name: string
+          id?: string
+          metadata?: Json | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          called_at?: string
+          created_at?: string
+          duration_ms?: number
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          metadata?: Json | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "function_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      journal: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          goals_for_tomorrow: string | null
+          id: string
+          is_pinned: boolean | null
+          journal_date: string
+          lessons_learned: string | null
+          market_conditions: string | null
+          mood: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          goals_for_tomorrow?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          journal_date: string
+          lessons_learned?: string | null
+          market_conditions?: string | null
+          mood?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          goals_for_tomorrow?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          journal_date?: string
+          lessons_learned?: string | null
+          market_conditions?: string | null
+          mood?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       journal_images: {
         Row: {
+          caption: string | null
           created_at: string | null
+          display_order: number | null
           id: string
-          image_name: string
+          image_name: string | null
           image_url: string
-          journal_date: string
+          journal_id: string
           linked_trade_id: string | null
           notes: string | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
+          caption?: string | null
           created_at?: string | null
+          display_order?: number | null
           id?: string
-          image_name: string
+          image_name?: string | null
           image_url: string
-          journal_date: string
+          journal_id: string
           linked_trade_id?: string | null
           notes?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
+          caption?: string | null
           created_at?: string | null
+          display_order?: number | null
           id?: string
-          image_name?: string
+          image_name?: string | null
           image_url?: string
-          journal_date?: string
+          journal_id?: string
           linked_trade_id?: string | null
           notes?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "journal_images_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_images_linked_trade_id_fkey"
+            columns: ["linked_trade_id"]
+            isOneToOne: false
+            referencedRelation: "community_feed"
+            referencedColumns: ["trade_id"]
+          },
           {
             foreignKeyName: "journal_images_linked_trade_id_fkey"
             columns: ["linked_trade_id"]
             isOneToOne: false
             referencedRelation: "trades"
-            referencedColumns: ["trade_id"]
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_images_linked_trade_id_fkey"
+            columns: ["linked_trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "journal_images_user_id_fkey"
@@ -459,214 +938,170 @@ export type Database = {
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "journal_images_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       notes: {
         Row: {
+          category: string | null
+          color: string | null
           content: string | null
           created_at: string | null
-          date: string | null
-          note_id: string
-          preview: string | null
-          tags: string[] | null
-          title: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string | null
-          date?: string | null
-          note_id?: string
-          preview?: string | null
-          tags?: string[] | null
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          content?: string | null
-          created_at?: string | null
-          date?: string | null
-          note_id?: string
-          preview?: string | null
-          tags?: string[] | null
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_notes_user_id"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_logs: {
-        Row: {
-          clicked_at: string | null
-          created_at: string | null
-          delivered_at: string | null
-          delivery_channel: string
-          delivery_status: string | null
-          error_message: string | null
           id: string
-          notification_id: string | null
-          read_at: string | null
-          scheduled_notification_id: string | null
-          user_id: string | null
+          is_archived: boolean | null
+          is_pinned: boolean | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
-          clicked_at?: string | null
+          category?: string | null
+          color?: string | null
+          content?: string | null
           created_at?: string | null
-          delivered_at?: string | null
-          delivery_channel: string
-          delivery_status?: string | null
-          error_message?: string | null
           id?: string
-          notification_id?: string | null
-          read_at?: string | null
-          scheduled_notification_id?: string | null
-          user_id?: string | null
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
-          clicked_at?: string | null
+          category?: string | null
+          color?: string | null
+          content?: string | null
           created_at?: string | null
-          delivered_at?: string | null
-          delivery_channel?: string
-          delivery_status?: string | null
-          error_message?: string | null
           id?: string
-          notification_id?: string | null
-          read_at?: string | null
-          scheduled_notification_id?: string | null
-          user_id?: string | null
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "notification_logs_notification_id_fkey"
-            columns: ["notification_id"]
-            isOneToOne: false
-            referencedRelation: "notifications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_logs_scheduled_notification_id_fkey"
-            columns: ["scheduled_notification_id"]
-            isOneToOne: false
-            referencedRelation: "scheduled_notifications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notification_logs_user_id_fkey"
+            foreignKeyName: "notes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       notifications: {
         Row: {
           action_type: string | null
-          comment_id: string | null
+          action_url: string | null
           created_at: string | null
+          data: Json | null
+          expires_at: string | null
           id: string
           is_read: boolean | null
-          link: string | null
-          message: string
-          source_user_id: string | null
-          status: string | null
+          message: string | null
+          priority: string | null
+          read_at: string | null
           title: string
-          trade_id: string | null
           type: string
-          updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           action_type?: string | null
-          comment_id?: string | null
+          action_url?: string | null
           created_at?: string | null
+          data?: Json | null
+          expires_at?: string | null
           id?: string
           is_read?: boolean | null
-          link?: string | null
-          message: string
-          source_user_id?: string | null
-          status?: string | null
-          title?: string
-          trade_id?: string | null
+          message?: string | null
+          priority?: string | null
+          read_at?: string | null
+          title: string
           type: string
-          updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           action_type?: string | null
-          comment_id?: string | null
+          action_url?: string | null
           created_at?: string | null
+          data?: Json | null
+          expires_at?: string | null
           id?: string
           is_read?: boolean | null
-          link?: string | null
-          message?: string
-          source_user_id?: string | null
-          status?: string | null
+          message?: string | null
+          priority?: string | null
+          read_at?: string | null
           title?: string
-          trade_id?: string | null
           type?: string
-          updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_notifications_user_id"
+            foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "notifications_source_user_id_fkey"
-            columns: ["source_user_id"]
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       partial_exits: {
         Row: {
-          created_at: string
+          created_at: string | null
           exit_price: number
           exit_quantity: number
           exit_time: string
-          fees: number
+          fees: number | null
           id: string
+          notes: string | null
           trade_id: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           exit_price: number
           exit_quantity: number
           exit_time: string
-          fees?: number
+          fees?: number | null
           id?: string
+          notes?: string | null
           trade_id: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           exit_price?: number
           exit_quantity?: number
           exit_time?: string
-          fees?: number
+          fees?: number | null
           id?: string
+          notes?: string | null
           trade_id?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -674,121 +1109,171 @@ export type Database = {
             foreignKeyName: "partial_exits_trade_id_fkey"
             columns: ["trade_id"]
             isOneToOne: false
-            referencedRelation: "trades"
+            referencedRelation: "community_feed"
             referencedColumns: ["trade_id"]
           },
-        ]
-      }
-      payments: {
-        Row: {
-          admin_notes: string | null
-          amount: number
-          billing_cycle: string | null
-          coupon_code: string | null
-          coupon_id: string | null
-          created_at: string
-          currency: string
-          description: string | null
-          discount_applied: number | null
-          invoice_id: string | null
-          order_number: string | null
-          original_amount: number | null
-          payment_date: string
-          payment_id: string
-          payment_method: string | null
-          payment_status: string
-          plan_id: string | null
-          provider_ref: string | null
-          subscription_plan: string | null
-          transaction_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          admin_notes?: string | null
-          amount: number
-          billing_cycle?: string | null
-          coupon_code?: string | null
-          coupon_id?: string | null
-          created_at?: string
-          currency?: string
-          description?: string | null
-          discount_applied?: number | null
-          invoice_id?: string | null
-          order_number?: string | null
-          original_amount?: number | null
-          payment_date?: string
-          payment_id?: string
-          payment_method?: string | null
-          payment_status: string
-          plan_id?: string | null
-          provider_ref?: string | null
-          subscription_plan?: string | null
-          transaction_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          admin_notes?: string | null
-          amount?: number
-          billing_cycle?: string | null
-          coupon_code?: string | null
-          coupon_id?: string | null
-          created_at?: string
-          currency?: string
-          description?: string | null
-          discount_applied?: number | null
-          invoice_id?: string | null
-          order_number?: string | null
-          original_amount?: number | null
-          payment_date?: string
-          payment_id?: string
-          payment_method?: string | null
-          payment_status?: string
-          plan_id?: string | null
-          provider_ref?: string | null
-          subscription_plan?: string | null
-          transaction_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "fk_payments_user_id"
+            foreignKeyName: "partial_exits_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partial_exits_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partial_exits_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "payments_coupon_id_fkey"
-            columns: ["coupon_id"]
+            foreignKeyName: "partial_exits_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "coupons"
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      payment_history: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          cashfree_order_id: string | null
+          cashfree_payment_session_id: string | null
+          coupon_code: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          discount_amount: number | null
+          gateway_order_id: string | null
+          gateway_payment_id: string | null
+          id: string
+          invoice_id: string | null
+          metadata: Json | null
+          order_number: string | null
+          original_amount: number | null
+          paid_at: string | null
+          payment_gateway: string | null
+          payment_method: string | null
+          provider_ref: string | null
+          refunded_at: string | null
+          status: string
+          subscription_id: string | null
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          cashfree_order_id?: string | null
+          cashfree_payment_session_id?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          gateway_order_id?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          order_number?: string | null
+          original_amount?: number | null
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          provider_ref?: string | null
+          refunded_at?: string | null
+          status: string
+          subscription_id?: string | null
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          cashfree_order_id?: string | null
+          cashfree_payment_session_id?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          discount_amount?: number | null
+          gateway_order_id?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          order_number?: string | null
+          original_amount?: number | null
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          provider_ref?: string | null
+          refunded_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "active_subscriptions"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "payment_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "payments_plan_id_fkey"
-            columns: ["plan_id"]
+            foreignKeyName: "payment_history_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "subscription_plans"
-            referencedColumns: ["plan_id"]
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       pinned_trades: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
+          pin_order: number | null
           trade_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
+          pin_order?: number | null
           trade_id: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
+          pin_order?: number | null
           trade_id?: string
           user_id?: string
         }
@@ -797,8 +1282,22 @@ export type Database = {
             foreignKeyName: "pinned_trades_trade_id_fkey"
             columns: ["trade_id"]
             isOneToOne: false
-            referencedRelation: "trades"
+            referencedRelation: "community_feed"
             referencedColumns: ["trade_id"]
+          },
+          {
+            foreignKeyName: "pinned_trades_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pinned_trades_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pinned_trades_user_id_fkey"
@@ -807,162 +1306,131 @@ export type Database = {
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pinned_trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
-      scheduled_notifications: {
+      rate_limit_logs: {
         Row: {
-          created_at: string | null
-          created_by: string | null
+          created_at: string
+          endpoint: string
+          exceeded_at: string
           id: string
-          notification_data: Json
-          repeat_type: string | null
-          scheduled_for: string
-          status: string | null
-          target_type: string
-          target_user_ids: string[] | null
-          timezone: string | null
-          updated_at: string | null
+          ip_address: string | null
           user_id: string | null
         }
         Insert: {
-          created_at?: string | null
-          created_by?: string | null
+          created_at?: string
+          endpoint: string
+          exceeded_at?: string
           id?: string
-          notification_data: Json
-          repeat_type?: string | null
-          scheduled_for: string
-          status?: string | null
-          target_type: string
-          target_user_ids?: string[] | null
-          timezone?: string | null
-          updated_at?: string | null
+          ip_address?: string | null
           user_id?: string | null
         }
         Update: {
-          created_at?: string | null
-          created_by?: string | null
+          created_at?: string
+          endpoint?: string
+          exceeded_at?: string
           id?: string
-          notification_data?: Json
-          repeat_type?: string | null
-          scheduled_for?: string
-          status?: string | null
-          target_type?: string
-          target_user_ids?: string[] | null
-          timezone?: string | null
-          updated_at?: string | null
+          ip_address?: string | null
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "scheduled_notifications_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scheduled_notifications_user_id_fkey"
+            foreignKeyName: "rate_limit_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      settings: {
-        Row: {
-          accounts_linked: number | null
-          base_currency: string | null
-          custom_tags: string | null
-          mistakes_tags: string | null
-          setting_id: string
-          subscription_status: string | null
-          time_zone: string | null
-          user_id: string | null
-        }
-        Insert: {
-          accounts_linked?: number | null
-          base_currency?: string | null
-          custom_tags?: string | null
-          mistakes_tags?: string | null
-          setting_id?: string
-          subscription_status?: string | null
-          time_zone?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          accounts_linked?: number | null
-          base_currency?: string | null
-          custom_tags?: string | null
-          mistakes_tags?: string | null
-          setting_id?: string
-          subscription_status?: string | null
-          time_zone?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "fk_settings_user_id"
+            foreignKeyName: "rate_limit_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       strategies: {
         Row: {
+          created_at: string | null
           description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
           is_public: boolean | null
           is_shared: boolean | null
+          losing_trades: number | null
           losses: number | null
+          name: string
           net_pl: number | null
           notes: string | null
+          rules: Json | null
           shared_at: string | null
           shared_by_user_id: string | null
-          strategy_id: string
-          strategy_name: string
+          total_pnl: number | null
           total_trades: number | null
-          user_id: string | null
+          updated_at: string | null
+          user_id: string
           win_rate: number | null
-          wins: number | null
+          winning_trades: number | null
         }
         Insert: {
+          created_at?: string | null
           description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
           is_public?: boolean | null
           is_shared?: boolean | null
+          losing_trades?: number | null
           losses?: number | null
+          name: string
           net_pl?: number | null
           notes?: string | null
+          rules?: Json | null
           shared_at?: string | null
           shared_by_user_id?: string | null
-          strategy_id?: string
-          strategy_name: string
+          total_pnl?: number | null
           total_trades?: number | null
-          user_id?: string | null
+          updated_at?: string | null
+          user_id: string
           win_rate?: number | null
-          wins?: number | null
+          winning_trades?: number | null
         }
         Update: {
+          created_at?: string | null
           description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
           is_public?: boolean | null
           is_shared?: boolean | null
+          losing_trades?: number | null
           losses?: number | null
+          name?: string
           net_pl?: number | null
           notes?: string | null
+          rules?: Json | null
           shared_at?: string | null
           shared_by_user_id?: string | null
-          strategy_id?: string
-          strategy_name?: string
+          total_pnl?: number | null
           total_trades?: number | null
-          user_id?: string | null
+          updated_at?: string | null
+          user_id?: string
           win_rate?: number | null
-          wins?: number | null
+          winning_trades?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_strategies_user_id"
-            columns: ["user_id"]
+            foreignKeyName: "strategies_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
@@ -971,183 +1439,353 @@ export type Database = {
             foreignKeyName: "strategies_shared_by_user_id_fkey"
             columns: ["shared_by_user_id"]
             isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "strategies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       strategy_rules: {
         Row: {
           created_at: string | null
+          id: string
+          is_active: boolean | null
           rule_description: string | null
-          rule_id: string
+          rule_order: number | null
           rule_title: string
           rule_type: string
           strategy_id: string
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
+          id?: string
+          is_active?: boolean | null
           rule_description?: string | null
-          rule_id?: string
+          rule_order?: number | null
           rule_title: string
           rule_type: string
           strategy_id: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
+          id?: string
+          is_active?: boolean | null
           rule_description?: string | null
-          rule_id?: string
+          rule_order?: number | null
           rule_title?: string
           rule_type?: string
           strategy_id?: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_strategy_rules_user_id"
+            foreignKeyName: "strategy_rules_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_rules_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "strategy_rules_strategy_id_fkey"
-            columns: ["strategy_id"]
+            foreignKeyName: "strategy_rules_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "strategies"
-            referencedColumns: ["strategy_id"]
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      subscription_event_logs: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          performed_by: string | null
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          performed_by?: string | null
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          performed_by?: string | null
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_event_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_event_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "subscription_event_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "active_subscriptions"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "subscription_event_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_event_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_event_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
       subscription_plans: {
         Row: {
-          analytics_other_access: boolean | null
-          analytics_overview_access: boolean | null
+          cashfree_plan_id_monthly: string | null
+          cashfree_plan_id_yearly: string | null
           created_at: string | null
-          features: Json | null
+          currency: string | null
+          description: string | null
+          display_name: string
+          features: Json
+          id: string
           is_active: boolean | null
-          limits: Json | null
+          is_default: boolean | null
+          limits: Json
           name: string
-          notes_access: boolean | null
-          plan_id: string
+          plan_type: string | null
           price_monthly: number | null
           price_yearly: number | null
-          profile_access: boolean | null
-          trading_account_limit: number | null
-          trading_strategy_limit: number | null
+          sort_order: number | null
+          stripe_price_id_monthly: string | null
+          stripe_price_id_yearly: string | null
+          updated_at: string | null
           validity_days: number | null
         }
         Insert: {
-          analytics_other_access?: boolean | null
-          analytics_overview_access?: boolean | null
+          cashfree_plan_id_monthly?: string | null
+          cashfree_plan_id_yearly?: string | null
           created_at?: string | null
-          features?: Json | null
+          currency?: string | null
+          description?: string | null
+          display_name: string
+          features?: Json
+          id?: string
           is_active?: boolean | null
-          limits?: Json | null
+          is_default?: boolean | null
+          limits?: Json
           name: string
-          notes_access?: boolean | null
-          plan_id?: string
+          plan_type?: string | null
           price_monthly?: number | null
           price_yearly?: number | null
-          profile_access?: boolean | null
-          trading_account_limit?: number | null
-          trading_strategy_limit?: number | null
+          sort_order?: number | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+          updated_at?: string | null
           validity_days?: number | null
         }
         Update: {
-          analytics_other_access?: boolean | null
-          analytics_overview_access?: boolean | null
+          cashfree_plan_id_monthly?: string | null
+          cashfree_plan_id_yearly?: string | null
           created_at?: string | null
-          features?: Json | null
+          currency?: string | null
+          description?: string | null
+          display_name?: string
+          features?: Json
+          id?: string
           is_active?: boolean | null
-          limits?: Json | null
+          is_default?: boolean | null
+          limits?: Json
           name?: string
-          notes_access?: boolean | null
-          plan_id?: string
+          plan_type?: string | null
           price_monthly?: number | null
           price_yearly?: number | null
-          profile_access?: boolean | null
-          trading_account_limit?: number | null
-          trading_strategy_limit?: number | null
+          sort_order?: number | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+          updated_at?: string | null
           validity_days?: number | null
         }
         Relationships: []
       }
       tags: {
         Row: {
+          color: string | null
+          created_at: string | null
           description: string | null
+          id: string
           linked_strategies: string | null
           linked_trades: string | null
-          tag_id: string
-          tag_name: string
+          name: string
           tag_type: string | null
-          user_id: string | null
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
         }
         Insert: {
+          color?: string | null
+          created_at?: string | null
           description?: string | null
+          id?: string
           linked_strategies?: string | null
           linked_trades?: string | null
-          tag_id?: string
-          tag_name: string
+          name: string
           tag_type?: string | null
-          user_id?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
         }
         Update: {
+          color?: string | null
+          created_at?: string | null
           description?: string | null
+          id?: string
           linked_strategies?: string | null
           linked_trades?: string | null
-          tag_id?: string
-          tag_name?: string
+          name?: string
           tag_type?: string | null
-          user_id?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_tags_user_id"
+            foreignKeyName: "tags_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       trade_comments: {
         Row: {
-          comment_text: string
-          created_at: string
+          content: string
+          created_at: string | null
+          edited_at: string | null
           id: string
+          is_edited: boolean | null
+          parent_comment_id: string | null
           trade_id: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          comment_text: string
-          created_at?: string
+          content: string
+          created_at?: string | null
+          edited_at?: string | null
           id?: string
+          is_edited?: boolean | null
+          parent_comment_id?: string | null
           trade_id: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          comment_text?: string
-          created_at?: string
+          content?: string
+          created_at?: string | null
+          edited_at?: string | null
           id?: string
+          is_edited?: boolean | null
+          parent_comment_id?: string | null
           trade_id?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trade_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "trade_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_comments_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "community_feed"
+            referencedColumns: ["trade_id"]
+          },
           {
             foreignKeyName: "trade_comments_trade_id_fkey"
             columns: ["trade_id"]
             isOneToOne: false
             referencedRelation: "trades"
-            referencedColumns: ["trade_id"]
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_comments_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trade_comments_user_id_fkey"
@@ -1156,23 +1794,105 @@ export type Database = {
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trade_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      trade_images: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          image_name: string | null
+          image_type: string | null
+          image_url: string
+          notes: string | null
+          trade_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_name?: string | null
+          image_type?: string | null
+          image_url: string
+          notes?: string | null
+          trade_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          image_name?: string | null
+          image_type?: string | null
+          image_url?: string
+          notes?: string | null
+          trade_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_images_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "community_feed"
+            referencedColumns: ["trade_id"]
+          },
+          {
+            foreignKeyName: "trade_images_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_images_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_images_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_images_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       trade_likes: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           trade_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           trade_id: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           trade_id?: string
           user_id?: string
@@ -1182,8 +1902,22 @@ export type Database = {
             foreignKeyName: "trade_likes_trade_id_fkey"
             columns: ["trade_id"]
             isOneToOne: false
-            referencedRelation: "trades"
+            referencedRelation: "community_feed"
             referencedColumns: ["trade_id"]
+          },
+          {
+            foreignKeyName: "trade_likes_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_likes_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trade_likes_user_id_fkey"
@@ -1192,64 +1926,97 @@ export type Database = {
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trade_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       trade_metrics: {
         Row: {
-          created_at: string | null
+          calculated_at: string | null
           gross_p_and_l: number | null
-          metric_id: string
+          gross_pnl: number | null
+          id: string
+          mae: number | null
+          max_drawdown: number | null
+          max_profit: number | null
+          mfe: number | null
           net_p_and_l: number | null
+          net_pnl: number | null
           percent_gain: number | null
+          pnl: number | null
+          r_multiple: number | null
           r2r: number | null
-          total_fees: number | null
-          trade_duration: unknown | null
+          reward_amount: number | null
+          risk_amount: number | null
+          risk_reward_ratio: number | null
+          trade_duration: unknown
+          trade_duration_minutes: number | null
           trade_id: string
           trade_outcome: string | null
-          updated_at: string | null
-          user_id: string | null
+          trade_result: string | null
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
+          calculated_at?: string | null
           gross_p_and_l?: number | null
-          metric_id?: string
+          gross_pnl?: number | null
+          id?: string
+          mae?: number | null
+          max_drawdown?: number | null
+          max_profit?: number | null
+          mfe?: number | null
           net_p_and_l?: number | null
+          net_pnl?: number | null
           percent_gain?: number | null
+          pnl?: number | null
+          r_multiple?: number | null
           r2r?: number | null
-          total_fees?: number | null
-          trade_duration?: unknown | null
+          reward_amount?: number | null
+          risk_amount?: number | null
+          risk_reward_ratio?: number | null
+          trade_duration?: unknown
+          trade_duration_minutes?: number | null
           trade_id: string
           trade_outcome?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          trade_result?: string | null
+          user_id: string
         }
         Update: {
-          created_at?: string | null
+          calculated_at?: string | null
           gross_p_and_l?: number | null
-          metric_id?: string
+          gross_pnl?: number | null
+          id?: string
+          mae?: number | null
+          max_drawdown?: number | null
+          max_profit?: number | null
+          mfe?: number | null
           net_p_and_l?: number | null
+          net_pnl?: number | null
           percent_gain?: number | null
+          pnl?: number | null
+          r_multiple?: number | null
           r2r?: number | null
-          total_fees?: number | null
-          trade_duration?: unknown | null
+          reward_amount?: number | null
+          risk_amount?: number | null
+          risk_reward_ratio?: number | null
+          trade_duration?: unknown
+          trade_duration_minutes?: number | null
           trade_id?: string
           trade_outcome?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          trade_result?: string | null
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_trade_metrics_user_id"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_trades"
+            foreignKeyName: "trade_metrics_trade_id_fkey"
             columns: ["trade_id"]
             isOneToOne: true
-            referencedRelation: "trades"
+            referencedRelation: "community_feed"
             referencedColumns: ["trade_id"]
           },
           {
@@ -1257,52 +2024,147 @@ export type Database = {
             columns: ["trade_id"]
             isOneToOne: true
             referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_metrics_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: true
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      trade_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          tag_id: string
+          trade_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tag_id: string
+          trade_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tag_id?: string
+          trade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_tags_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "community_feed"
             referencedColumns: ["trade_id"]
+          },
+          {
+            foreignKeyName: "trade_tags_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_tags_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
           },
         ]
       }
       trader_profiles: {
         Row: {
-          about_content: Json | null
+          about_content: string | null
           bio: string | null
-          created_at: string
+          created_at: string | null
           id: string
-          is_public: boolean
-          NEW: boolean | null
+          is_public: boolean | null
+          location: string | null
+          preferred_markets: string[] | null
           privacy_settings: Json | null
           profile_data: Json | null
+          risk_tolerance: string | null
           social_links: Json | null
           stats_visibility: Json | null
-          updated_at: string
+          timezone: string | null
+          total_pnl: number | null
+          total_trades: number | null
+          trading_experience: string | null
+          updated_at: string | null
           user_id: string
+          website_url: string | null
+          win_rate: number | null
         }
         Insert: {
-          about_content?: Json | null
+          about_content?: string | null
           bio?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_public?: boolean
-          NEW?: boolean | null
+          is_public?: boolean | null
+          location?: string | null
+          preferred_markets?: string[] | null
           privacy_settings?: Json | null
           profile_data?: Json | null
+          risk_tolerance?: string | null
           social_links?: Json | null
           stats_visibility?: Json | null
-          updated_at?: string
+          timezone?: string | null
+          total_pnl?: number | null
+          total_trades?: number | null
+          trading_experience?: string | null
+          updated_at?: string | null
           user_id: string
+          website_url?: string | null
+          win_rate?: number | null
         }
         Update: {
-          about_content?: Json | null
+          about_content?: string | null
           bio?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_public?: boolean
-          NEW?: boolean | null
+          is_public?: boolean | null
+          location?: string | null
+          preferred_markets?: string[] | null
           privacy_settings?: Json | null
           profile_data?: Json | null
+          risk_tolerance?: string | null
           social_links?: Json | null
           stats_visibility?: Json | null
-          updated_at?: string
+          timezone?: string | null
+          total_pnl?: number | null
+          total_trades?: number | null
+          trading_experience?: string | null
+          updated_at?: string | null
           user_id?: string
+          website_url?: string | null
+          win_rate?: number | null
         }
         Relationships: [
           {
@@ -1311,6 +2173,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "app_users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trader_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1322,15 +2191,15 @@ export type Database = {
           chart_link: string | null
           commission: number | null
           contract: string | null
-          contract_multiplier: number
+          contract_multiplier: number | null
           created_at: string | null
           entry_price: number
-          entry_time: string | null
+          entry_time: string
           exit_price: number | null
           exit_time: string | null
           fees: number | null
+          id: string
           instrument: string
-          is_public: boolean | null
           is_shared: boolean | null
           main_image: string | null
           market_type: string | null
@@ -1351,10 +2220,10 @@ export type Database = {
           tick_value: number | null
           total_exit_quantity: number | null
           trade_date: string | null
-          trade_id: string
           trade_rating: number | null
           trade_time_frame: string | null
-          user_id: string | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
           account_id?: string | null
@@ -1363,15 +2232,15 @@ export type Database = {
           chart_link?: string | null
           commission?: number | null
           contract?: string | null
-          contract_multiplier?: number
+          contract_multiplier?: number | null
           created_at?: string | null
           entry_price: number
-          entry_time?: string | null
+          entry_time: string
           exit_price?: number | null
           exit_time?: string | null
           fees?: number | null
+          id?: string
           instrument: string
-          is_public?: boolean | null
           is_shared?: boolean | null
           main_image?: string | null
           market_type?: string | null
@@ -1392,10 +2261,10 @@ export type Database = {
           tick_value?: number | null
           total_exit_quantity?: number | null
           trade_date?: string | null
-          trade_id?: string
           trade_rating?: number | null
           trade_time_frame?: string | null
-          user_id?: string | null
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
           account_id?: string | null
@@ -1404,15 +2273,15 @@ export type Database = {
           chart_link?: string | null
           commission?: number | null
           contract?: string | null
-          contract_multiplier?: number
+          contract_multiplier?: number | null
           created_at?: string | null
           entry_price?: number
-          entry_time?: string | null
+          entry_time?: string
           exit_price?: number | null
           exit_time?: string | null
           fees?: number | null
+          id?: string
           instrument?: string
-          is_public?: boolean | null
           is_shared?: boolean | null
           main_image?: string | null
           market_type?: string | null
@@ -1433,32 +2302,39 @@ export type Database = {
           tick_value?: number | null
           total_exit_quantity?: number | null
           trade_date?: string | null
-          trade_id?: string
           trade_rating?: number | null
           trade_time_frame?: string | null
-          user_id?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_trades_user_id"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "app_users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "trades_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
-            referencedColumns: ["account_id"]
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_parent_trade_id_fkey"
+            columns: ["parent_trade_id"]
+            isOneToOne: false
+            referencedRelation: "community_feed"
+            referencedColumns: ["trade_id"]
           },
           {
             foreignKeyName: "trades_parent_trade_id_fkey"
             columns: ["parent_trade_id"]
             isOneToOne: false
             referencedRelation: "trades"
-            referencedColumns: ["trade_id"]
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_parent_trade_id_fkey"
+            columns: ["parent_trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "trades_shared_by_user_id_fkey"
@@ -1468,324 +2344,928 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trades_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "trades_strategy_id_fkey"
             columns: ["strategy_id"]
             isOneToOne: false
             referencedRelation: "strategies"
-            referencedColumns: ["strategy_id"]
+            referencedColumns: ["id"]
           },
-        ]
-      }
-      trading_rules: {
-        Row: {
-          created_at: string | null
-          rule_id: string
-          rule_type: string
-          rule_value: string
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          rule_id?: string
-          rule_type: string
-          rule_value: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          rule_id?: string
-          rule_type?: string
-          rule_value?: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "fk_trading_rules_user_id"
+            foreignKeyName: "trades_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
-      trial_email_logs: {
+      user_creation_log: {
         Row: {
-          created_at: string
-          email_sent_at: string
-          email_status: string
-          email_type: string
+          auth_user_id: string | null
+          created_at: string | null
+          email: string
           id: string
-          trial_end_date: string
-          user_id: string
+          ip_address: unknown
+          profile_created: boolean | null
+          profile_creation_attempts: number | null
+          profile_creation_error: string | null
+          referrer: string | null
+          signup_method: string | null
+          signup_source: string | null
+          user_agent: string | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
         }
         Insert: {
-          created_at?: string
-          email_sent_at?: string
-          email_status?: string
-          email_type: string
+          auth_user_id?: string | null
+          created_at?: string | null
+          email: string
           id?: string
-          trial_end_date: string
-          user_id: string
+          ip_address?: unknown
+          profile_created?: boolean | null
+          profile_creation_attempts?: number | null
+          profile_creation_error?: string | null
+          referrer?: string | null
+          signup_method?: string | null
+          signup_source?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Update: {
-          created_at?: string
-          email_sent_at?: string
-          email_status?: string
-          email_type?: string
+          auth_user_id?: string | null
+          created_at?: string | null
+          email?: string
           id?: string
-          trial_end_date?: string
-          user_id?: string
+          ip_address?: unknown
+          profile_created?: boolean | null
+          profile_creation_attempts?: number | null
+          profile_creation_error?: string | null
+          referrer?: string | null
+          signup_method?: string | null
+          signup_source?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_creation_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_creation_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_push_tokens: {
         Row: {
-          created_at: string
+          created_at: string | null
+          device_info: Json | null
           id: string
-          subscription_data: Json
-          updated_at: string
+          is_active: boolean | null
+          last_used_at: string | null
+          platform: string
+          token: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
+          device_info?: Json | null
           id?: string
-          subscription_data: Json
-          updated_at?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          platform: string
+          token: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
+          device_info?: Json | null
           id?: string
-          subscription_data?: Json
-          updated_at?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          platform?: string
+          token?: string
+          updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
           created_at: string | null
           id: string
-          settings_data: Json
-          settings_type: string
+          key: string
           updated_at: string | null
-          user_id: string | null
+          user_id: string
+          value: Json
         }
         Insert: {
           created_at?: string | null
           id?: string
-          settings_data?: Json
-          settings_type: string
+          key: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
+          value: Json
         }
         Update: {
           created_at?: string | null
           id?: string
-          settings_data?: Json
-          settings_type?: string
+          key?: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
+          value?: Json
         }
         Relationships: [
           {
-            foreignKeyName: "fk_user_settings_user_id"
+            foreignKeyName: "user_settings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
-      user_subscriptions_new: {
+      user_subscriptions: {
         Row: {
           billing_cycle: string | null
+          cancel_at_period_end: boolean | null
+          cancelled_at: string | null
           created_at: string | null
-          end_date: string | null
+          current_period_end: string
+          current_period_start: string
+          gateway_customer_id: string | null
+          gateway_subscription_id: string | null
+          id: string
+          metadata: Json | null
           next_billing_date: string | null
-          payment_method: string | null
+          payment_gateway: string | null
           plan_id: string
-          start_date: string | null
           status: string
-          subscription_id: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
           billing_cycle?: string | null
+          cancel_at_period_end?: boolean | null
+          cancelled_at?: string | null
           created_at?: string | null
-          end_date?: string | null
+          current_period_end: string
+          current_period_start: string
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          metadata?: Json | null
           next_billing_date?: string | null
-          payment_method?: string | null
+          payment_gateway?: string | null
           plan_id: string
-          start_date?: string | null
-          status?: string
-          subscription_id?: string
+          status: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
           billing_cycle?: string | null
+          cancel_at_period_end?: boolean | null
+          cancelled_at?: string | null
           created_at?: string | null
-          end_date?: string | null
+          current_period_end?: string
+          current_period_start?: string
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          metadata?: Json | null
           next_billing_date?: string | null
-          payment_method?: string | null
+          payment_gateway?: string | null
           plan_id?: string
-          start_date?: string | null
           status?: string
-          subscription_id?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "user_subscriptions_new_plan_id_fkey"
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
-            referencedColumns: ["plan_id"]
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "user_subscriptions_new_user_id_fkey"
+            foreignKeyName: "user_subscriptions_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
           },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      active_subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          email: string | null
+          features: Json | null
+          limits: Json | null
+          payment_gateway: string | null
+          plan_display_name: string | null
+          plan_name: string | null
+          status: string | null
+          subscription_health: string | null
+          subscription_id: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      community_feed: {
+        Row: {
+          action: string | null
+          avatar_url: string | null
+          bio: string | null
+          comment_count: number | null
+          entry_price: number | null
+          entry_time: string | null
+          exit_price: number | null
+          exit_time: string | null
+          instrument: string | null
+          like_count: number | null
+          main_image: string | null
+          net_pnl: number | null
+          notes: string | null
+          percent_gain: number | null
+          shared_at: string | null
+          status: string | null
+          trade_id: string | null
+          trade_result: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      expiring_trials: {
+        Row: {
+          days_remaining: number | null
+          email: string | null
+          signup_date: string | null
+          trade_count: number | null
+          trial_end_date: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          days_remaining?: never
+          email?: string | null
+          signup_date?: string | null
+          trade_count?: never
+          trial_end_date?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          days_remaining?: never
+          email?: string | null
+          signup_date?: string | null
+          trade_count?: never
+          trial_end_date?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      function_performance_summary: {
+        Row: {
+          avg_duration_ms: number | null
+          failed_calls: number | null
+          function_name: string | null
+          max_duration_ms: number | null
+          min_duration_ms: number | null
+          success_rate: number | null
+          successful_calls: number | null
+          total_calls: number | null
+        }
+        Relationships: []
+      }
+      index_usage: {
+        Row: {
+          idx_scan: number | null
+          idx_tup_fetch: number | null
+          idx_tup_read: number | null
+          index_size: string | null
+          indexname: unknown
+          schemaname: unknown
+          tablename: unknown
+        }
+        Relationships: []
+      }
+      table_sizes: {
+        Row: {
+          schemaname: unknown
+          size: string | null
+          size_bytes: number | null
+          tablename: unknown
+        }
+        Relationships: []
+      }
+      trades_with_images: {
+        Row: {
+          account_id: string | null
+          action: string | null
+          chart_link: string | null
+          commission: number | null
+          contract: string | null
+          contract_multiplier: number | null
+          created_at: string | null
+          entry_price: number | null
+          entry_time: string | null
+          exit_price: number | null
+          exit_time: string | null
+          fees: number | null
+          id: string | null
+          images: Json | null
+          instrument: string | null
+          is_shared: boolean | null
+          main_image: string | null
+          market_type: string | null
+          notes: string | null
+          parent_trade_id: string | null
+          quantity: number | null
+          rating: number | null
+          remaining_quantity: number | null
+          shared_at: string | null
+          shared_by_user_id: string | null
+          sl: number | null
+          status: string | null
+          strategy_id: string | null
+          target: number | null
+          tick_size: number | null
+          tick_value: number | null
+          trade_date: string | null
+          trade_time_frame: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_parent_trade_id_fkey"
+            columns: ["parent_trade_id"]
+            isOneToOne: false
+            referencedRelation: "community_feed"
+            referencedColumns: ["trade_id"]
+          },
+          {
+            foreignKeyName: "trades_parent_trade_id_fkey"
+            columns: ["parent_trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_parent_trade_id_fkey"
+            columns: ["parent_trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades_with_images"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_shared_by_user_id_fkey"
+            columns: ["shared_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "trades_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      unused_indexes: {
+        Row: {
+          index_size: string | null
+          indexname: unknown
+          schemaname: unknown
+          tablename: unknown
+        }
+        Relationships: []
+      }
+      user_rate_limit_violations: {
+        Row: {
+          email: string | null
+          endpoint: string | null
+          last_violation: string | null
+          username: string | null
+          violation_count: number | null
+        }
+        Relationships: []
+      }
+      user_trade_summary: {
+        Row: {
+          avg_loss: number | null
+          avg_pnl: number | null
+          avg_trade_duration_minutes: number | null
+          avg_win: number | null
+          best_trade: number | null
+          breakeven_trades: number | null
+          closed_trades: number | null
+          losing_trades: number | null
+          open_trades: number | null
+          total_pnl: number | null
+          total_trades: number | null
+          user_id: string | null
+          win_rate: number | null
+          winning_trades: number | null
+          worst_trade: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "expiring_trials"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Functions: {
-      aggregate_trade_notes_for_date: {
-        Args: { target_user_id: string; target_date: string }
+      add_trade_image: {
+        Args: {
+          p_display_order: number
+          p_image_name: string
+          p_image_type: string
+          p_image_url: string
+          p_trade_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      aggregate_journal_image_notes_for_date: {
+        Args: { target_date: string; target_user_id: string }
         Returns: undefined
       }
+      aggregate_trade_notes_for_date: {
+        Args: { target_date: string; target_user_id: string }
+        Returns: undefined
+      }
+      analyze_all_tables: { Args: never; Returns: undefined }
       assign_user_plan: {
         Args: {
-          target_user_id: string
-          plan_name_param: string
           billing_cycle_param?: string
+          plan_name_param: string
+          start_date_param?: string
+          target_user_id: string
         }
         Returns: Json
       }
-      check_admin_role: {
-        Args: Record<PropertyKey, never>
+      calculate_trade_metrics: {
+        Args: { p_trade_id: string }
+        Returns: undefined
+      }
+      check_admin_role: { Args: never; Returns: boolean }
+      check_expired_subscriptions: { Args: never; Returns: Json }
+      check_feature_access: {
+        Args: { auth_user_id: string; feature_key: string }
         Returns: boolean
       }
-      check_subscription_limit: {
-        Args: { user_id_param: string; feature_name_param: string }
+      check_plan_limit: {
+        Args: { p_limit_type: string; p_user_id: string }
+        Returns: boolean
+      }
+      check_resource_limit: {
+        Args: { auth_user_id: string; resource_type: string }
+        Returns: Json
+      }
+      check_user_setup_status: { Args: never; Returns: Json }
+      cleanup_old_logs: { Args: never; Returns: undefined }
+      cleanup_old_notifications: {
+        Args: { p_days_old?: number }
         Returns: number
       }
-      check_username_availability: {
-        Args: { username_to_check: string }
-        Returns: boolean
+      create_notification:
+        | {
+            Args: {
+              p_action_type?: string
+              p_action_url?: string
+              p_data?: Json
+              p_message?: string
+              p_priority?: string
+              p_title: string
+              p_type: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              action_url?: string
+              message: string
+              notification_type: string
+              source_user_id?: string
+              target_user_id: string
+              title: string
+              trade_id?: string
+            }
+            Returns: string
+          }
+      ensure_user_profile_exists: {
+        Args: { user_auth_id: string }
+        Returns: Json
       }
-      get_admin_payments: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          payment_id: string
-          user_id: string
-          username: string
-          email: string
-          amount: number
-          currency: string
-          payment_status: string
-          payment_method: string
-          subscription_plan: string
-          billing_cycle: string
-          payment_date: string
-          order_number: string
-          invoice_id: string
-          transaction_id: string
-          admin_notes: string
-          created_at: string
-        }[]
-      }
-      get_current_user_internal_id: {
-        Args: Record<PropertyKey, never>
+      generate_affiliate_code: { Args: never; Returns: string }
+      generate_username_from_email: {
+        Args: { email_input: string }
         Returns: string
       }
-      get_payment_metrics: {
-        Args: Record<PropertyKey, never>
+      get_admin_dashboard_metrics: {
+        Args: never
         Returns: {
+          active_users: number
+          churn_rate: number
+          mrr: number
           total_revenue: number
-          total_payments_count: number
+          total_trades: number
+          total_users: number
+          trial_users: number
+        }[]
+      }
+      get_admin_payments: {
+        Args: never
+        Returns: {
+          admin_notes: string
+          amount: number
+          billing_cycle: string
+          created_at: string
+          currency: string
+          email: string
+          invoice_id: string
+          order_number: string
+          payment_date: string
+          payment_id: string
+          payment_method: string
+          payment_status: string
+          subscription_plan: string
+          transaction_id: string
+          user_id: string
+          username: string
+        }[]
+      }
+      get_affiliate_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          active_referrals: number
+          conversion_rate: number
+          paid_commissions: number
+          pending_commissions: number
+          total_commissions: number
+          total_referrals: number
+        }[]
+      }
+      get_current_user_internal_id: { Args: never; Returns: string }
+      get_current_user_profile: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          email_verified: boolean
+          first_name: string
+          last_name: string
+          profile_completed: boolean
+          user_id: string
+          user_role: string
+          user_status: string
+          username: string
+        }[]
+      }
+      get_daily_pnl_series: {
+        Args: { p_end_date: string; p_start_date: string; p_user_id: string }
+        Returns: {
+          daily_pnl: number
+          losing_trades: number
+          trade_count: number
+          trade_date: string
+          winning_trades: number
+        }[]
+      }
+      get_follower_count: { Args: { p_user_id: string }; Returns: number }
+      get_following_count: { Args: { p_user_id: string }; Returns: number }
+      get_journal_stats: {
+        Args: { p_end_date?: string; p_start_date?: string; p_user_id: string }
+        Returns: {
+          avg_content_length: number
+          entries_with_mood: number
+          mood_distribution: Json
+          most_common_tags: string[]
+          total_entries: number
+        }[]
+      }
+      get_market_distribution: {
+        Args: { p_user_id: string }
+        Returns: {
+          market_type: string
+          total_pnl: number
+          trade_count: number
+          win_rate: number
+        }[]
+      }
+      get_payment_metrics: {
+        Args: never
+        Returns: {
           avg_payment_value: number
+          total_payments_count: number
+          total_revenue: number
         }[]
       }
       get_segment_user_ids: {
         Args: { segment_type: string }
         Returns: string[]
       }
+      get_top_strategies: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          avg_pnl: number
+          strategy_id: string
+          strategy_name: string
+          total_pnl: number
+          total_trades: number
+          win_rate: number
+        }[]
+      }
+      get_trade_comment_count: { Args: { p_trade_id: string }; Returns: number }
+      get_trade_like_count: { Args: { p_trade_id: string }; Returns: number }
+      get_unread_notification_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       get_user_access_matrix: {
         Args: { auth_user_id: string }
-        Returns: Json
+        Returns: {
+          accessblocked: boolean
+          accountslimit: number
+          accountsused: number
+          aiaccess: boolean
+          analyticsaccess: boolean
+          communityaccess: boolean
+          email: string
+          enddate: string
+          isactive: boolean
+          nextbillingdate: string
+          notesaccess: boolean
+          plan_id: string
+          plan_name: string
+          plan_type: string
+          profileaccess: boolean
+          startdate: string
+          status: string
+          strategieslimit: number
+          strategiesused: number
+          tradeslimit: number
+          tradesused: number
+          trialenddate: string
+          userid: string
+          username: string
+          userrole: string
+          userstatus: string
+        }[]
       }
-      get_user_id_from_auth: {
-        Args: { auth_user_id: string }
-        Returns: string
+      get_user_analytics: {
+        Args: {
+          p_account_id?: string
+          p_end_date?: string
+          p_start_date?: string
+          p_strategy_id?: string
+          p_user_id: string
+        }
+        Returns: {
+          avg_loss: number
+          avg_pnl: number
+          avg_trade_duration_minutes: number
+          avg_win: number
+          best_trade: number
+          closed_trades: number
+          losing_trades: number
+          open_trades: number
+          profit_factor: number
+          total_commission: number
+          total_fees: number
+          total_pnl: number
+          total_trades: number
+          win_rate: number
+          winning_trades: number
+          worst_trade: number
+        }[]
       }
-      get_user_segments: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
+      get_user_id_from_auth: { Args: never; Returns: string }
+      get_user_plan: {
+        Args: { p_user_id: string }
+        Returns: {
+          features: Json
+          limits: Json
+          plan_id: string
+          plan_name: string
+          status: string
+        }[]
       }
-      get_username_by_user_id: {
-        Args: { user_uuid: string }
-        Returns: string
-      }
-      has_role: {
-        Args: { check_user_id: string; check_role: string }
+      get_user_segments: { Args: never; Returns: Json }
+      has_liked_trade: {
+        Args: { p_trade_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
+      initialize_default_user_accounts_strategies: {
+        Args: { user_id_param: string }
         Returns: boolean
       }
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
+      invalidate_user_access_cache: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      is_admin: { Args: never; Returns: boolean }
+      is_following: {
+        Args: { p_follower_id: string; p_following_id: string }
         Returns: boolean
       }
-      is_manager: {
-        Args: Record<PropertyKey, never>
+      is_user_setup_complete: { Args: never; Returns: boolean }
+      mark_notifications_read: {
+        Args: { p_notification_ids?: string[]; p_user_id: string }
+        Returns: number
+      }
+      reindex_all_tables: { Args: never; Returns: undefined }
+      remove_trade_image: {
+        Args: { p_image_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_profile_owner: {
-        Args: { profile_auth_id: string }
-        Returns: boolean
+      search_notes: {
+        Args: { p_limit?: number; p_search_query: string; p_user_id: string }
+        Returns: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          rank: number
+          tags: string[]
+          title: string
+          updated_at: string
+        }[]
       }
-      is_same_user: {
-        Args: { user_auth_id: string }
-        Returns: boolean
-      }
-      is_shared_trade_owner: {
-        Args: { check_user_id: string }
-        Returns: boolean
-      }
+      update_expired_subscriptions: { Args: never; Returns: undefined }
       update_journal_images_notes_for_date: {
-        Args: { target_user_id: string; target_date: string }
+        Args: { target_date: string; target_user_id: string }
         Returns: undefined
       }
       update_payment_admin_notes: {
-        Args: { payment_id_param: string; notes_param: string }
-        Returns: boolean
+        Args: { notes_param: string; payment_id_param: string }
+        Returns: undefined
       }
       update_payment_status: {
         Args: { payment_id_param: string; status_param: string }
-        Returns: boolean
+        Returns: undefined
       }
-      user_owns_record: {
-        Args: { record_user_id: string }
-        Returns: boolean
+      update_user_role: {
+        Args: { new_role: string; reason?: string; target_user_id: string }
+        Returns: Json
       }
+      upsert_user_subscription: {
+        Args: {
+          billing_cycle_param?: string
+          plan_name_param: string
+          start_date_param?: string
+          target_user_id: string
+        }
+        Returns: Json
+      }
+      user_owns_record: { Args: { record_user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "manager" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1911,9 +3391,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
-    Enums: {
-      app_role: ["admin", "manager", "user"],
-    },
+    Enums: {},
   },
 } as const
+

@@ -13,7 +13,7 @@ interface LeaderboardEntry {
   user_id: string;
   username: string;
   full_name: string;
-  profile_picture_url: string;
+  avatar_url: string;
   netPnL: number;
   winRate: number;
   profitFactor: number;
@@ -70,7 +70,7 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
   const navigate = useNavigate();
   const { user } = useAuth();
   const communityAction = useCommunityAction();
-  
+
   // Local state for follow status with optimistic updates
   const [isFollowed, setIsFollowed] = useState(trader.is_followed_by_user || false);
   const [followersCount, setFollowersCount] = useState(trader.followersCount);
@@ -86,24 +86,17 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
   useEffect(() => {
     const checkFollowStatus = async () => {
       if (!user?.id || !trader.user_id) return;
-      
-      try {
-        const { data: currentUserData } = await supabase
-          .from('app_users')
-          .select('user_id')
-          .eq('auth_id', user.id)
-          .single();
 
-        if (currentUserData) {
-          const { data: followData } = await supabase
-            .from('community_follows')
-            .select('id')
-            .eq('follower_id', currentUserData.user_id)
-            .eq('following_id', trader.user_id)
-            .single();
-          
-          setIsFollowed(!!followData);
-        }
+      try {
+        // user.id IS the app_users.id
+        const { data: followData } = await supabase
+          .from('community_follows')
+          .select('id')
+          .eq('follower_id', user.id)
+          .eq('following_id', trader.user_id)
+          .maybeSingle();
+
+        setIsFollowed(!!followData);
       } catch (error) {
         console.error('Error checking follow status:', error);
       }
@@ -119,14 +112,14 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user || isLoading) return;
-    
+
     setIsLoading(true);
-    
+
     // Optimistic update
     const newFollowState = !isFollowed;
     setIsFollowed(newFollowState);
     setFollowersCount(prev => newFollowState ? prev + 1 : prev - 1);
-    
+
     try {
       await communityAction.mutateAsync({
         action: newFollowState ? 'follow' : 'unfollow',
@@ -145,10 +138,9 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
   const isCurrentUser = user?.id === trader.user_id;
 
   return (
-    <Card 
-      className={`flex-shrink-0 w-80 p-4 cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 ${
-        trader.rank <= 3 ? 'border-l-yellow-500' : 'border-l-muted'
-      } ${className}`}
+    <Card
+      className={`flex-shrink-0 w-80 p-4 cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 ${trader.rank <= 3 ? 'border-l-yellow-500' : 'border-l-muted'
+        } ${className}`}
       onClick={handleCardClick}
     >
       <div className="space-y-4">
@@ -156,13 +148,13 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="relative">
-              <Badge 
+              <Badge
                 className={`absolute -top-2 -left-2 h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${getRankBadgeColor(trader.rank)}`}
               >
                 {trader.rank}
               </Badge>
               <Avatar className="h-12 w-12">
-                <AvatarImage src={trader.profile_picture_url} alt={trader.username} />
+                <AvatarImage src={trader.avatar_url} alt={trader.username} />
                 <AvatarFallback>
                   {trader.full_name?.split(' ').map(n => n[0]).join('') || trader.username?.[0]?.toUpperCase()}
                 </AvatarFallback>
@@ -183,7 +175,7 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
               </p>
             </div>
           </div>
-          
+
           {!isCurrentUser && (
             <Button
               size="sm"
@@ -205,27 +197,26 @@ export const LeaderboardCard: React.FC<LeaderboardCardProps> = ({ trader, classN
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Net P&L</p>
-            <p className={`text-sm font-semibold ${
-              trader.netPnL >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <p className={`text-sm font-semibold ${trader.netPnL >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
               {formatCurrency(trader.netPnL)}
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Win Rate</p>
             <p className="text-sm font-semibold">
               {trader.winRate.toFixed(1)}%
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Total Trades</p>
             <p className="text-sm font-semibold">
               {trader.totalTrades.toLocaleString()}
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Profit Factor</p>
             <p className="text-sm font-semibold">

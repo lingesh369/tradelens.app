@@ -4,14 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 
 export interface UserProfile {
-  user_id: string; // Primary key from app_users table
-  auth_id: string;
+  id: string; // Primary key from app_users table (same as auth.users.id)
   email: string;
   username?: string;
   first_name?: string;
   last_name?: string;
   user_role: string;
-  user_status: string;
+  subscription_status: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -28,11 +27,11 @@ export function useUserProfile() {
     console.log('Fetching profile for user:', user.id);
 
     try {
-      // Direct query to app_users table using auth_id
+      // Query app_users table - user.id IS the app_users.id
       const { data: profileData, error: profileError } = await supabase
         .from('app_users')
         .select('*')
-        .eq('auth_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       if (profileError) {
@@ -51,7 +50,7 @@ export function useUserProfile() {
         const { data: retryProfileData, error: retryError } = await supabase
           .from('app_users')
           .select('*')
-          .eq('auth_id', user.id)
+          .eq('id', user.id)
           .maybeSingle();
 
         if (retryError) {

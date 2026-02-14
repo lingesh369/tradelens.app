@@ -73,7 +73,7 @@ const SalesDashboard = () => {
 
         // Get active subscriptions
         const { count: activeSubscriptions } = await supabase
-          .from('user_subscriptions_new')
+          .from('user_subscriptions')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'active');
 

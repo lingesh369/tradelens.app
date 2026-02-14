@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear TradeLens Cache</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #28a745;
+            color: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 12px;
+            margin: 20px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear TradeLens Cache</h1>
+        
+        <div class="info">
+            <strong>Why clear cache?</strong><br>
+            If trades aren't showing up on the dashboard, it might be due to cached filters or stale data.
+        </div>
+
+        <h3>Current Filters:</h3>
+        <pre id="currentFilters">Loading...</pre>
+
+        <button onclick="clearSessionStorage()">Clear Session Storage</button>
+        <button onclick="clearLocalStorage()">Clear Local Storage</button>
+        <button onclick="clearAll()">Clear Everything</button>
+        <button onclick="location.reload()">Refresh Page</button>
+
+        <div class="success" id="successMessage"></div>
+
+        <div class="info" style="margin-top: 30px;">
+            <strong>After clearing:</strong><br>
+            1. Click "Refresh Page" or press F5<br>
+            2. Login again if needed<br>
+            3. Check if trades appear
+        </div>
+    </div>
+
+    <script>
+        function showCurrentFilters() {
+            const filters = {
+                dateRange: sessionStorage.getItem('tradelens_global_date_range'),
+                accounts: sessionStorage.getItem('tradelens_global_selected_accounts'),
+                localStorageKeys: Object.keys(localStorage).filter(k => k.includes('tradelens') || k.includes('supabase'))
+            };
+            
+            document.getElementById('currentFilters').textContent = JSON.stringify(filters, null, 2);
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 3000);
+        }
+
+        function clearSessionStorage() {
+            sessionStorage.clear();
+            showSuccess('✅ Session storage cleared!');
+            showCurrentFilters();
+        }
+
+        function clearLocalStorage() {
+            localStorage.clear();
+            showSuccess('✅ Local storage cleared!');
+            showCurrentFilters();
+        }
+
+        function clearAll() {
+            sessionStorage.clear();
+            localStorage.clear();
+            showSuccess('✅ All storage cleared!');
+            showCurrentFilters();
+        }
+
+        // Show current filters on load
+        showCurrentFilters();
+    </script>
+</body>
+</html>

@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface JournalImage {
   id: string;
+  journal_id: string;
   user_id: string;
   journal_date: string;
   image_url: string;

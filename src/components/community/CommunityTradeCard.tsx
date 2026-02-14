@@ -19,24 +19,25 @@ interface CommunityTrade {
   notes?: string;
   main_image?: string;
   trade_metrics?: {
-    net_p_and_l: number;
-    gross_p_and_l: number;
+    net_pnl: number;
+    gross_pnl: number;
     percent_gain: number;
-    trade_outcome: string;
-    r2r?: number;
+    trade_result: string;
+    r_multiple?: number;
     trade_duration?: string;
   };
   app_users: {
+    id: string;
     username: string;
     first_name: string;
     last_name: string;
-    profile_picture_url?: string;
+    avatar_url?: string;
   };
   accounts: {
-    account_name: string;
+    name: string;
   };
   strategies?: {
-    strategy_name: string;
+    name: string;
   };
   likes_count: number;
   comments_count: number;
@@ -84,8 +85,8 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
     e.stopPropagation();
     if (onTraderClick) {
       if (trade.app_users?.username) {
-      onTraderClick(trade.app_users.username);
-    }
+        onTraderClick(trade.app_users.username);
+      }
     }
   };
 
@@ -93,13 +94,13 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
     e.stopPropagation();
     await communityAction.mutateAsync({
       action: 'follow',
-      userId: trade.app_users?.username || 'unknown'
+      userId: trade.app_users?.id || 'unknown'
     });
   };
 
-  const isProfit = (trade.trade_metrics?.net_p_and_l || 0) >= 0;
+  const isProfit = (trade.trade_metrics?.net_pnl || 0) >= 0;
   const pnlColor = isProfit ? 'text-green-500' : 'text-red-500';
-  const outcome = trade.trade_metrics?.trade_outcome || 'OPEN';
+  const outcome = trade.trade_metrics?.trade_result || 'OPEN';
 
   // Format image URL
   const getImageUrl = () => {
@@ -119,15 +120,15 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
   };
 
   return (
-    <Card 
+    <Card
       className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group h-full flex flex-col"
       onClick={() => onTradeClick?.(trade.trade_id)}
     >
       <div className="p-0 flex flex-col h-full">
         {/* Trade Image */}
         <div className="relative aspect-video bg-muted rounded-t-lg overflow-hidden flex-shrink-0">
-          <img 
-            src={getImageUrl()} 
+          <img
+            src={getImageUrl()}
             alt={`${trade.instrument} trade`}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
             onError={(e) => {
@@ -136,7 +137,7 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
           />
           {/* Status badge overlay */}
           <div className="absolute top-2 right-2">
-            <Badge 
+            <Badge
               variant={outcome === 'WIN' ? 'default' : outcome === 'LOSS' ? 'destructive' : 'secondary'}
               className="text-xs"
             >
@@ -156,7 +157,7 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
               </Badge>
             </div>
             <div className="flex-shrink-0">
-              <TradePnLBadge pnl={trade.trade_metrics?.net_p_and_l || 0} pnlPercent={trade.trade_metrics?.percent_gain || 0} />
+              <TradePnLBadge pnl={trade.trade_metrics?.net_pnl || 0} pnlPercent={trade.trade_metrics?.percent_gain || 0} />
             </div>
           </div>
 
@@ -179,30 +180,30 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
           {/* Actions Section */}
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex items-center gap-1">
-              <Button 
-                size="sm" 
-                variant="ghost" 
+              <Button
+                size="sm"
+                variant="ghost"
                 className="h-8 px-2 hover:bg-muted"
                 onClick={handleLike}
                 disabled={communityAction.isPending}
               >
-                <Heart 
-                  className={`h-4 w-4 mr-1 ${trade.is_liked_by_user ? 'fill-red-500 text-red-500' : ''}`} 
+                <Heart
+                  className={`h-4 w-4 mr-1 ${trade.is_liked_by_user ? 'fill-red-500 text-red-500' : ''}`}
                 />
                 <span className="text-xs">{trade.likes_count}</span>
               </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
+              <Button
+                size="sm"
+                variant="ghost"
                 className="h-8 px-2 hover:bg-muted"
                 onClick={handleComment}
               >
                 <MessageCircle className="h-4 w-4 mr-1" />
                 <span className="text-xs">{trade.comments_count}</span>
               </Button>
-              <Button 
-                size="sm" 
-                variant="ghost" 
+              <Button
+                size="sm"
+                variant="ghost"
                 className="h-8 px-2 hover:bg-muted"
                 onClick={handleShare}
               >
@@ -213,21 +214,21 @@ export const CommunityTradeCard = ({ trade, onTradeClick, onTraderClick }: Commu
 
           {/* Trader Info Section */}
           <div className="flex items-center justify-between pt-2 border-t">
-            <div 
+            <div
               className="flex items-center gap-2 cursor-pointer hover:opacity-80 flex-1 min-w-0"
               onClick={handleTraderClick}
             >
               <Avatar className="h-6 w-6 flex-shrink-0">
-                <AvatarImage src={trade.app_users?.profile_picture_url || ''} />
+                <AvatarImage src={trade.app_users?.avatar_url || ''} />
                 <AvatarFallback className="text-xs">
                   {trade.app_users?.username?.charAt(0)?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium truncate">@{trade.app_users?.username || 'Unknown'}</span>
             </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               className="h-7 text-xs flex-shrink-0 ml-2"
               onClick={handleFollow}
               disabled={communityAction.isPending}

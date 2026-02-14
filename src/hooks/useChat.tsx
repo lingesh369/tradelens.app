@@ -93,22 +93,12 @@ export const useChat = () => {
 
     try {
       // Get user's internal ID first
-      const { data: userData, error: userError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .single();
+      const userId = user.id; // user.id IS the app_users.id
 
-      if (userError || !userData) {
-        console.error("Error fetching user data:", userError);
-        return null;
-      }
-
-      // Try to find existing chat
       const { data: existingChat, error: fetchError } = await (supabase as any)
         .from('chats')
         .select('*')
-        .or(`and(participant1_id.eq.${userData.user_id},participant2_id.eq.${participantId}),and(participant1_id.eq.${participantId},participant2_id.eq.${userData.user_id})`)
+        .or(`and(participant1_id.eq.${userId},participant2_id.eq.${participantId}),and(participant1_id.eq.${participantId},participant2_id.eq.${userId})`)
         .single();
 
       if (existingChat && !fetchError) {
@@ -119,7 +109,7 @@ export const useChat = () => {
       const { data: newChat, error: createError } = await (supabase as any)
         .from('chats')
         .insert({
-          participant1_id: userData.user_id,
+          participant1_id: userId,
           participant2_id: participantId
         })
         .select()
@@ -144,23 +134,14 @@ export const useChat = () => {
     if (!user) return;
 
     try {
-      // Get user's internal ID first
-      const { data: userData, error: userError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .single();
-
-      if (userError || !userData) {
-        console.error("Error fetching user data:", userError);
-        return;
-      }
+      // user.id IS the app_users.id
+      const userId = user.id;
 
       const { error } = await (supabase as any)
         .from('messages')
         .insert({
           chat_id: chatId,
-          sender_id: userData.user_id,
+          sender_id: userId,
           content
         });
 
@@ -180,17 +161,8 @@ export const useChat = () => {
     if (!user) return;
 
     const setupRealtimeSubscription = async () => {
-      // Get user's internal ID first
-      const { data: userData, error: userError } = await supabase
-        .from("app_users")
-        .select("user_id")
-        .eq("auth_id", user.id)
-        .single();
-
-      if (userError || !userData) {
-        console.error("Error fetching user data:", userError);
-        return;
-      }
+      // user.id IS the app_users.id
+      const userId = user.id;
 
       fetchChats();
 
@@ -200,7 +172,7 @@ export const useChat = () => {
           event: '*',
           schema: 'public',
           table: 'chats',
-          filter: `participant1_id=eq.${userData.user_id},participant2_id=eq.${userData.user_id}`
+          filter: `participant1_id=eq.${userId}`
         }, () => {
           fetchChats();
         })

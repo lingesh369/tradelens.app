@@ -29,7 +29,7 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
     
     setIsDeleting(true);
     try {
-      await deleteTag(tag.tag_id);
+      await deleteTag(tag.id);
       onOpenChange(false);
     } catch (error) {
       console.error("Error deleting tag:", error);
@@ -45,7 +45,7 @@ export function DeleteTagDialog({ open, onOpenChange, tag }: DeleteTagDialogProp
           <AlertDialogTitle>Are you sure you want to delete this tag?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the tag 
-            "{tag?.tag_name}".
+            "{tag?.name}".
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

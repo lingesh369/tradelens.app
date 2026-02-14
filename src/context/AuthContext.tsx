@@ -168,34 +168,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       // Wait for database trigger to complete (with progressive delays)
-      const delays = [1000, 2000, 3000, 4000]; // 1s, 2s, 3s, 4s
+      const delays = [500, 1000, 1500, 2000, 3000]; // More attempts with shorter initial delays
       
       for (let attempt = 0; attempt < delays.length; attempt++) {
         await new Promise(resolve => setTimeout(resolve, delays[attempt]));
         
         // Check if user record was created by trigger
+        // Use maybeSingle() to avoid throwing on no rows
         const { data: existingUser, error: checkError } = await supabase
           .from('app_users')
           .select('id, email, profile_completed')
           .eq('id', authUser.id)
-          .single();
+          .maybeSingle();
           
-        if (!checkError && existingUser) {
-          console.log(`User profile found after ${delays.slice(0, attempt + 1).reduce((a, b) => a + b, 0)}ms for:`, authUser.email);
+        // Ignore PGRST116 (no rows) errors - that's expected while waiting
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.warn(`Unexpected error checking profile (attempt ${attempt + 1}):`, checkError);
+          // Continue trying despite errors
+        }
+          
+        if (existingUser) {
+          const totalWait = delays.slice(0, attempt + 1).reduce((a, b) => a + b, 0);
+          console.log(`✓ User profile found after ${totalWait}ms for:`, authUser.email);
           return; // User record exists, trigger worked
         }
         
-        console.log(`Attempt ${attempt + 1}: User profile not found, waiting...`);
+        console.log(`Attempt ${attempt + 1}/${delays.length}: Profile not ready yet, waiting...`);
       }
       
-      // If we get here, the trigger didn't create the user record
-      console.warn("Database trigger failed to create user profile in time");
+      // If we get here, the trigger didn't create the user record in time
+      console.error("Database trigger failed to create user profile within timeout");
       
-      throw new Error("User account setup is taking longer than expected. Please try refreshing the page or contact support if the issue persists.");
+      // Don't throw - let the app continue with safe defaults
+      console.warn("Continuing with safe defaults - profile may load after refresh");
       
     } catch (error) {
       console.error("Error in waitForProfileCreation:", error);
-      throw error;
+      // Don't throw - let the app continue
+      console.warn("Continuing despite profile creation error");
     }
   };
 
@@ -209,29 +219,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('app_users')
           .select('user_role, profile_completed, subscription_status, trial_end_date')
           .eq('id', authUser.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid throwing on no rows
           
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
+          // Only throw on real errors, not "no rows"
+          throw error;
+        }
+        
+        if (!data) {
           // If user not found, wait for trigger completion
-          if (error.code === 'PGRST116') { // No rows returned
-            console.log("User profile not found, waiting for database trigger...");
-            await waitForProfileCreation(authUser);
+          console.log("User profile not found, waiting for database trigger...");
+          await waitForProfileCreation(authUser);
+          
+          // Retry after trigger completion
+          const { data: retryData, error: retryError } = await supabase
+            .from('app_users')
+            .select('user_role, profile_completed, subscription_status, trial_end_date')
+            .eq('id', authUser.id)
+            .maybeSingle();
             
-            // Retry after trigger completion
-            const { data: retryData, error: retryError } = await supabase
-              .from('app_users')
-              .select('user_role, profile_completed, subscription_status, trial_end_date')
-              .eq('id', authUser.id)
-              .single();
-              
-            if (retryError) {
-              throw retryError;
-            }
-            
-            return retryData;
+          if (retryError && retryError.code !== 'PGRST116') {
+            throw retryError;
           }
           
-          throw error;
+          return retryData;
         }
         
         return data;
@@ -289,6 +300,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setTrialActive(isTrialing);
         setDaysLeftInTrial(daysLeft);
+      } else {
+        // Profile still not found after waiting - use safe defaults
+        console.warn("Profile not found after waiting, using safe defaults");
+        setUserRole('User');
+        setSubscriptionPlan('Free Trial');
+        setTrialActive(true);
+        setIsAdmin(false);
+        setIsManager(false);
+        setDaysLeftInTrial(7);
       }
       
       setIsRoleLoading(false);
@@ -305,12 +325,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setDaysLeftInTrial(7);
       setIsRoleLoading(false);
       
-      // Show user-friendly error
-      toast({
-        title: "Profile Loading Issue",
-        description: "We're having trouble loading your profile. Some features may be limited until this resolves.",
-        variant: "destructive",
-      });
+      // Show user-friendly error only if it's a real problem
+      if (error && !(error as any)?.code?.includes('PGRST116')) {
+        toast({
+          title: "Profile Loading Issue",
+          description: "We're setting up your account. Please refresh if this persists.",
+          variant: "default",
+        });
+      }
     }
   };
 

@@ -83,7 +83,7 @@ export class AdminSecurityService {
       const { data, error } = await supabase
         .from('app_users')
         .select('user_role')
-        .eq('auth_id', user.id)
+        .eq('id', user.id)
         .single();
 
       if (error) {

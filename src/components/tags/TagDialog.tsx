@@ -33,7 +33,7 @@ import { useTags, Tag, TagFormValues } from "@/hooks/useTags";
 import { Loader2 } from "lucide-react";
 
 const tagFormSchema = z.object({
-  tag_name: z.string().min(1, "Tag name is required"),
+  name: z.string().min(1, "Tag name is required"),
   tag_type: z.string().min(1, "Tag type is required"),
   description: z.string().nullable(),
 });
@@ -50,7 +50,7 @@ export function TagDialog({ open, onOpenChange, tag }: TagDialogProps) {
   const { createTag, updateTag } = useTags();
   
   const defaultValues: Partial<TagFormValues> = {
-    tag_name: "",
+    name: "",
     tag_type: "Other",
     description: null,
   };
@@ -66,7 +66,7 @@ export function TagDialog({ open, onOpenChange, tag }: TagDialogProps) {
       if (tag) {
         // Pre-fill form with tag data
         form.reset({
-          tag_name: tag.tag_name,
+          name: tag.name,
           tag_type: tag.tag_type,
           description: tag.description,
         });
@@ -82,7 +82,7 @@ export function TagDialog({ open, onOpenChange, tag }: TagDialogProps) {
     try {
       if (tag) {
         // Update existing tag
-        await updateTag({ tag_id: tag.tag_id, tagData: values });
+        await updateTag({ id: tag.id, tagData: values });
       } else {
         // Add new tag
         await createTag(values);
@@ -119,7 +119,7 @@ export function TagDialog({ open, onOpenChange, tag }: TagDialogProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="tag_name"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tag Name</FormLabel>

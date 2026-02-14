@@ -5,12 +5,16 @@ export const getPresetDateRange = (preset: DatePreset): DateRange => {
   const today = new Date();
   const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const endOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+  
+  // Add 1 day buffer to handle timezone issues and future-dated trades
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   switch (preset) {
     case "allTime":
       return {
         from: new Date(2020, 0, 1), // Start from 2020 as a reasonable "all time" start
-        to: endOfDay(today),
+        to: endOfDay(tomorrow), // Include tomorrow to handle timezone issues
         preset: "allTime"
       };
 

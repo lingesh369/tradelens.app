@@ -1,3 +1,4 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // CORS configuration for edge functions
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

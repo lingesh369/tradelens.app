@@ -15,7 +15,7 @@ export interface JournalEntryLegacy {
   entry_content: string;
   ai_summary: string | null;
   violated_rules: string[] | null;
-  journal_id?: string;
+  id?: string;
   journal_date?: string;
   notes?: string;
   image_captions?: Record<string, string>;
@@ -64,7 +64,7 @@ export function useJournal() {
         }
         
         const journalEntry: JournalEntry = {
-          journal_id: item.journal_id,
+          id: item.id,
           user_id: item.user_id,
           journal_date: journalDate,
           notes: item.notes || '',
@@ -80,7 +80,7 @@ export function useJournal() {
           image_captions: imageCaptions,
           all_trades_notes: item.all_trades_notes || null,
           all_journal_images_notes: item.all_journal_images_notes || null,
-          note_id: item.journal_id,
+          note_id: item.id,
           title: `Journal for ${journalDate}`,
           content: item.notes || '',
           date: journalDate,
@@ -95,8 +95,8 @@ export function useJournal() {
       journalCache.set(cacheKey, transformedData);
 
       const legacyData = transformedData.map(item => ({
-        entry_id: item.journal_id,
-        journal_id: item.journal_id,
+        entry_id: item.id,
+        id: item.id,
         user_id: item.user_id,
         created_at: item.journal_date,
         journal_date: item.journal_date,
@@ -159,7 +159,7 @@ export function useJournal() {
 
       let result;
 
-      if (data.journal_id || data.entry_id || data.note_id) {
+      if (data.id || data.entry_id || data.note_id) {
         // Update existing entry
         const updateData = {
           notes: processedContent,
@@ -170,7 +170,7 @@ export function useJournal() {
         const { error } = await supabase
           .from('journal')
           .update(updateData)
-          .eq('journal_id', data.journal_id || data.entry_id || data.note_id)
+          .eq('id', data.id || data.entry_id || data.note_id)
           .eq('user_id', userId);
 
         if (error) throw error;
@@ -227,7 +227,7 @@ export function useJournal() {
       const { error } = await supabase
         .from('journal')
         .delete()
-        .eq('journal_id', entryId)
+        .eq('id', entryId)
         .eq('user_id', userId);
 
       if (error) throw error;
@@ -329,7 +329,7 @@ export function useJournal() {
       const { data: tradeData, error: tradeError } = await supabase
         .from("trades")
         .select("*")
-        .eq("trade_id", tradeId)
+        .eq("id", tradeId)
         .single();
         
       if (tradeError) throw tradeError;
@@ -407,3 +407,5 @@ export function useJournal() {
     deleteJournal
   };
 }
+
+

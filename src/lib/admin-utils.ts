@@ -30,7 +30,7 @@ export const fetchAllUsers = async () => {
     const usersWithPlans = await Promise.all((data || []).map(async (user) => {
       try {
         const { data: subscription } = await supabase
-          .from('user_subscriptions_new')
+          .from('user_subscriptions')
           .select(`
             status,
             end_date,
@@ -163,7 +163,7 @@ export const getAdminUserByUsername = async (username: string) => {
     };
 
     const { data: subscription } = await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .select(`
         *,
         subscription_plans (name)
@@ -270,7 +270,7 @@ export const updateUserTrial = async (userId: string, trialData: any) => {
   try {
     // Update subscription instead of user directly
     const { data, error } = await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .update({
         end_date: trialData.trial_end_date
       })
@@ -292,7 +292,7 @@ export const extendUserTrial = async (userId: string, days: number) => {
     endDate.setDate(endDate.getDate() + days);
     
     const { data, error } = await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .update({
         end_date: endDate.toISOString()
       })
@@ -315,7 +315,7 @@ export const updateSubscriptionExpiry = async (userId: string, newEndDate: Date 
   try {
     // First check if there's an active subscription
     const { data: existingSubscription, error: checkError } = await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
@@ -331,7 +331,7 @@ export const updateSubscriptionExpiry = async (userId: string, newEndDate: Date 
 
     // Update the subscription with the new end date
     const { data, error } = await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .update({ 
         end_date: newEndDate.toISOString(),
         // If the new end date is in the past, mark as expired
@@ -381,7 +381,7 @@ export const assignUserPlan = async (userId: string, planId: string, billingCycl
 
     // First, mark any existing active subscriptions as expired
     await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .update({ status: 'expired' })
       .eq('user_id', userId)
       .eq('status', 'active');
@@ -481,7 +481,7 @@ export const getUserStats = async (userId: string) => {
   try {
     // Get basic user subscription info
     const { data: subscription, error: subError } = await supabase
-      .from('user_subscriptions_new')
+      .from('user_subscriptions')
       .select(`
         *,
         subscription_plans (

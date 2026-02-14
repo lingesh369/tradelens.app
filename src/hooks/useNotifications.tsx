@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { useAppUserId } from '@/hooks/useAppUserId';
 import { showNotificationToast } from '@/components/notifications/NotificationToast';
 
 export interface Notification {
@@ -10,12 +9,13 @@ export interface Notification {
   title: string;
   message: string;
   type: string;
-  link?: string;
+  action_url?: string;
   action_type?: string;
   is_read: boolean;
   created_at: string;
-  updated_at: string;
   user_id: string;
+  priority?: string;
+  data?: any;
 }
 
 export const useNotifications = () => {
@@ -23,16 +23,16 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
-  const { appUserId } = useAppUserId();
 
   const fetchNotifications = useCallback(async () => {
-    if (!user || !appUserId) return;
+    if (!user) return;
 
     try {
+      // user.id IS the app_users.id and notifications.user_id
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, title, message, type, link, action_type, is_read, created_at, updated_at, user_id')
-        .eq('user_id', appUserId)
+        .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -44,7 +44,7 @@ export const useNotifications = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, appUserId]);
+  }, [user]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
@@ -67,13 +67,13 @@ export const useNotifications = () => {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    if (!user || !appUserId) return;
+    if (!user) return;
 
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
-        .eq('user_id', appUserId)
+        .eq('user_id', user.id)
         .eq('is_read', false);
 
       if (error) throw error;
@@ -85,7 +85,7 @@ export const useNotifications = () => {
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
-  }, [user, appUserId]);
+  }, [user]);
 
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {
@@ -109,7 +109,7 @@ export const useNotifications = () => {
 
   // Set up realtime subscription
   useEffect(() => {
-    if (!user || !appUserId) return;
+    if (!user) return;
 
     fetchNotifications();
 
@@ -121,7 +121,7 @@ export const useNotifications = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${appUserId}`
+          filter: `user_id=eq.${user.id}`
         },
         (payload) => {
           const newNotification = payload.new as Notification;
@@ -133,7 +133,7 @@ export const useNotifications = () => {
           showNotificationToast({
             title: newNotification.title,
             message: newNotification.message,
-            link: newNotification.link,
+            link: newNotification.action_url,
             action_type: newNotification.action_type
           });
         }
@@ -143,7 +143,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, appUserId, fetchNotifications]);
+  }, [user, fetchNotifications]);
 
   return {
     notifications,

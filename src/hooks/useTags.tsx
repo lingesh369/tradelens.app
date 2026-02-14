@@ -6,19 +6,20 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
 
 export interface Tag {
-  tag_id: string;
+  id: string;
   user_id: string;
-  tag_name: string;
+  name: string;
   tag_type: string;
   description: string | null;
-  linked_strategies: string | null;
-  linked_trades: string | null;
+  color: string | null;
+  usage_count: number;
 }
 
 export interface TagFormValues {
-  tag_name: string;
+  name: string;
   tag_type: string;
   description?: string | null;
+  color?: string | null;
 }
 
 export function useTags() {
@@ -42,13 +43,13 @@ export function useTags() {
       .from("tags")
       .select("*")
       .eq("user_id", userId)
-      .order("tag_name", { ascending: true });
+      .order("name", { ascending: true });
 
     if (error) {
       console.error('Error fetching tags:', error);
       throw error;
     }
-    
+
     console.log('Tags fetched successfully:', data);
     return data || [];
   };
@@ -66,13 +67,13 @@ export function useTags() {
     return data;
   };
 
-  const updateTag = async ({ tag_id, tagData }: { tag_id: string; tagData: TagFormValues }): Promise<Tag> => {
+  const updateTag = async ({ id, tagData }: { id: string; tagData: TagFormValues }): Promise<Tag> => {
     if (!userId) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from("tags")
       .update(tagData)
-      .eq("tag_id", tag_id)
+      .eq("id", id)
       .eq("user_id", userId)
       .select()
       .single();
@@ -81,13 +82,13 @@ export function useTags() {
     return data;
   };
 
-  const deleteTag = async (tag_id: string): Promise<void> => {
+  const deleteTag = async (id: string): Promise<void> => {
     if (!userId) throw new Error("User not authenticated");
 
     const { error } = await supabase
       .from("tags")
       .delete()
-      .eq("tag_id", tag_id)
+      .eq("id", id)
       .eq("user_id", userId);
 
     if (error) throw error;

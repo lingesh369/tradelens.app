@@ -33,7 +33,7 @@ async function getAccessToken(): Promise<string> {
   return accessToken;
 }
 
-export async function createPayPalOrder(amount: number, currency = 'USD', planId: string) {
+export async function createPayPalOrder(amount: number, currency = 'USD', customId: string) {
   const token = await getAccessToken();
 
   const response = await fetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
@@ -49,7 +49,8 @@ export async function createPayPalOrder(amount: number, currency = 'USD', planId
           currency_code: currency,
           value: amount.toFixed(2),
         },
-        custom_id: planId,
+        custom_id: customId,
+        reference_id: customId,
       }],
     }),
   });

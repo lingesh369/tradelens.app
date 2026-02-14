@@ -67,7 +67,7 @@ const AdminDashboard = () => {
 
         // Get subscription data using the correct approach
         const { data: subscriptionData } = await supabase
-          .from('user_subscriptions_new')
+          .from('user_subscriptions')
           .select(`
             subscription_plans (name)
           `)
@@ -90,7 +90,7 @@ const AdminDashboard = () => {
         threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
         
         const { count: expiringTrials } = await supabase
-          .from('user_subscriptions_new')
+          .from('user_subscriptions')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'active')
           .not('end_date', 'is', null)
@@ -101,7 +101,7 @@ const AdminDashboard = () => {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
         const { count: recentUpgrades } = await supabase
-          .from('user_subscriptions_new')
+          .from('user_subscriptions')
           .select('*', { count: 'exact', head: true })
           .in('status', ['active'])
           .gte('start_date', thirtyDaysAgo.toISOString());

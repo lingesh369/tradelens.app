@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 
 /**
- * Hook to get the app_users.user_id for the current authenticated user
- * This is needed because some tables reference app_users.user_id instead of auth.users.id
+ * Hook to get the app_users.id for the current authenticated user
+ * In this schema, app_users.id is the same as auth.users.id (direct reference)
+ * This hook verifies the user exists in app_users table
  */
 export const useAppUserId = () => {
   const [appUserId, setAppUserId] = useState<string | null>(null);
@@ -20,17 +21,24 @@ export const useAppUserId = () => {
       }
 
       try {
+        // In this schema, app_users.id = auth.users.id
+        // Just verify the user exists in app_users
         const { data, error } = await supabase
           .from('app_users')
-          .select('user_id')
-          .eq('auth_id', user.id)
-          .single();
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching app user ID:', error);
           setAppUserId(null);
+        } else if (data) {
+          // User exists in app_users, use their ID
+          setAppUserId(data.id);
         } else {
-          setAppUserId(data.user_id);
+          // User not found in app_users yet (might be during signup)
+          console.warn('User not found in app_users, profile may still be creating');
+          setAppUserId(null);
         }
       } catch (error) {
         console.error('Error fetching app user ID:', error);

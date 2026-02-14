@@ -48,8 +48,8 @@ export function MistakeTagsSection({ trades, dateRange, settings }: MistakeTagsS
     
     // Initialize map with all mistake tags
     mistakeTags.forEach(tag => {
-      tagMap.set(tag.tag_id, {
-        tagName: tag.tag_name,
+      tagMap.set(tag.id, {
+        tagName: tag.name,
         netProfit: 0,
         totalProfit: 0,
         totalLoss: 0,
@@ -81,7 +81,7 @@ export function MistakeTagsSection({ trades, dateRange, settings }: MistakeTagsS
       
       // Check if any of the trade's tags are mistake tags
       tradeTags.forEach(tagId => {
-        const mistakeTag = mistakeTags.find(tag => tag.tag_id === tagId);
+        const mistakeTag = mistakeTags.find(tag => tag.id === tagId);
         if (mistakeTag) {
           const stats = tagMap.get(tagId);
           if (stats) {

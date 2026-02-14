@@ -79,6 +79,28 @@ export function useSubscription() {
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
+  const paymentHistoryQuery = useQuery({
+    queryKey: ['payment-history', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('payment_history' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching payment history:', error);
+        return [];
+      }
+
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   return {
     data: subscriptionQuery.data,
     isLoading: subscriptionQuery.isLoading,
@@ -89,6 +111,10 @@ export function useSubscription() {
     // Plans data
     plans: plansQuery.data || [],
     isLoadingPlans: plansQuery.isLoading,
-    plansError: plansQuery.error
+    plansError: plansQuery.error,
+    // Payment history
+    paymentHistory: paymentHistoryQuery.data || [],
+    isLoadingPayments: paymentHistoryQuery.isLoading,
+    paymentsError: paymentHistoryQuery.error
   };
 }

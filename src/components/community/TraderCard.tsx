@@ -10,7 +10,7 @@ interface TraderProfile {
   username: string;
   first_name: string;
   last_name: string;
-  profile_picture_url?: string;
+  avatar_url?: string;
   bio?: string;
   followers_count: number;
   win_rate: number;
@@ -78,7 +78,7 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
     if (value === 0) {
       return "--";
     }
-    
+
     // Use the exact same logic as ProfileHeader with large number formatting
     if (calculatedStats) {
       return `$${formatLargeNumber(value)}`;
@@ -88,7 +88,7 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
   };
 
   return (
-    <Card 
+    <Card
       className="rounded-xl p-4 sm:p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer border-0 bg-card hover:ring-2 hover:ring-primary/20"
       onClick={handleTraderClick}
     >
@@ -97,7 +97,7 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
         <div className="flex items-start gap-4">
           <div className="relative">
             <Avatar className="h-12 w-12 ring-2 ring-primary/10">
-              <AvatarImage src={trader.profile_picture_url} />
+              <AvatarImage src={trader.avatar_url} />
               <AvatarFallback className="text-lg font-medium">
                 {trader.username?.charAt(0)?.toUpperCase() || 'U'}
               </AvatarFallback>
@@ -113,7 +113,7 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-base truncate leading-tight">
-              {trader.first_name && trader.last_name 
+              {trader.first_name && trader.last_name
                 ? `${trader.first_name} ${trader.last_name}`
                 : trader.username
               }
@@ -129,27 +129,26 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
             <p className="text-sm sm:text-lg font-semibold text-foreground">{trader.followers_count}</p>
             <p className="text-xs text-muted-foreground">Followers</p>
           </div>
-          
+
           {/* Trades */}
           <div className="text-center">
             <p className="text-sm sm:text-lg font-semibold text-foreground">{displayStats.trades}</p>
             <p className="text-xs text-muted-foreground">Trades</p>
           </div>
-          
+
           {/* P&L */}
           <div className="text-center">
-            <p className={`text-sm sm:text-lg font-semibold ${
-              displayStats.netPnL === 0 
-                ? 'text-muted-foreground' 
-                : displayStats.netPnL >= 0 
-                  ? 'text-green-600' 
+            <p className={`text-sm sm:text-lg font-semibold ${displayStats.netPnL === 0
+                ? 'text-muted-foreground'
+                : displayStats.netPnL >= 0
+                  ? 'text-green-600'
                   : 'text-red-600'
-            }`}>
+              }`}>
               {formatPnL(displayStats.netPnL)}
             </p>
             <p className="text-xs text-muted-foreground">Net P&L</p>
           </div>
-          
+
           {/* Win Rate */}
           <div className="text-center">
             <p className="text-sm sm:text-lg font-semibold text-green-600">
@@ -161,8 +160,8 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
 
         {/* Bottom Section (Actions) */}
         <div className="flex items-center gap-3">
-          <Button 
-            className="flex-1" 
+          <Button
+            className="flex-1"
             size="sm"
             variant={trader.is_followed_by_user ? "outline" : "default"}
             onClick={handleFollow}
@@ -170,7 +169,7 @@ export const TraderCard = ({ trader, calculatedStats, onTraderClick, onMessageCl
           >
             {communityAction.isPending ? 'Loading...' : (trader.is_followed_by_user ? 'Unfollow' : 'Follow')}
           </Button>
-          
+
           <Button
             size="sm"
             variant="outline"

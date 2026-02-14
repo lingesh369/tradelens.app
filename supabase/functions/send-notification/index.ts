@@ -70,10 +70,51 @@ Deno.serve(async (req) => {
       }
     }
 
-    // TODO: Send email notifications if enabled
+    // Send email notifications if enabled
     if (sendEmail) {
-      // Implement email sending logic here
-      console.log('Email notifications not yet implemented');
+      // Fetch emails for the users
+      // Note: In a high-volume scenario, we might want to batch this or use a more efficient query.
+      // For now, iterating or using 'in' with caution. 
+      // Supabase Auth Admin getUserById is single-user. 
+      // We'll trust the 'email_logs' table might also help, but best source is auth.
+      // Actually, we can just insert into email_queue with user_id, and let process-email-queue fetch the email if it's missing?
+      // Looking at process-email-queue (Step 328), it uses recipient_email from the queue row.
+      // So we MUST fetch the email here.
+      
+      // OPTIMIZATION: If we had an 'app_users' public email column, we could query that.
+      // Assuming 'app_users' has 'email' (it often does in these schemas as a cache).
+      
+      const { data: usersWithEmail, error: usersError } = await supabase
+        .from('app_users')
+        .select('id, email')
+        .in('id', userIds);
+
+      if (!usersError && usersWithEmail) {
+          const emailInserts = usersWithEmail.map(u => ({
+              user_id: u.id,
+              recipient_email: u.email,
+              email_type: 'general_notification', // Generic type
+              status: 'pending',
+              subject: title,
+              email_data: {
+                  message: message,
+                  url: url,
+                  type: type
+              }
+          }));
+
+          if (emailInserts.length > 0) {
+              const { error: queueError } = await supabase
+                  .from('email_queue')
+                  .insert(emailInserts);
+              
+              if (queueError) {
+                  console.error('Failed to queue emails:', queueError);
+              } else {
+                  console.log(`Queued ${emailInserts.length} emails`);
+              }
+          }
+      }
     }
 
     return successResponse({

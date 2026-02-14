@@ -18,7 +18,7 @@ export function useUserProfile() {
         .from('app_users')
         .select(`
           *,
-          trader_profiles(*)
+          trader_profile:trader_profiles(*)
         `)
         .eq('id', user.id)
         .single();
@@ -28,7 +28,14 @@ export function useUserProfile() {
         throw error;
       }
 
-      return data as UserProfile;
+      // Transform the data to match UserProfile type
+      const profile = data as any;
+      return {
+        ...profile,
+        trader_profile: Array.isArray(profile.trader_profile) 
+          ? profile.trader_profile[0] 
+          : profile.trader_profile
+      } as UserProfile;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -58,7 +65,13 @@ export function useUserProfile() {
           .upsert({
             user_id: user.id,
             ...trader_profile,
-          });
+          }, { onConflict: 'user_id' });
+        
+        // Review:
+        // 1. app_users has PK id.
+        // 2. trader_profiles has PK id, but user_id is the unique FK.
+        // 3. upserting without onConflict on a non-PK unique column can fail if Supabase doesn't auto-detect it correctly.
+        // "duplicate key value violates unique constraint trader_profiles_user_id_key" confirms this is the issue.
 
         if (profileError) throw profileError;
       }

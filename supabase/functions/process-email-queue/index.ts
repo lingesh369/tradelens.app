@@ -30,11 +30,13 @@ Deno.serve(async (req) => {
     console.log('🔄 Starting email queue processing...');
 
     // Fetch pending emails from queue
+    // We strictly select 'pending' or 'failed' (if retry count < 3).
+    // Ordered by created_at to ensure FIFO.
     const { data: pendingEmails, error: fetchError } = await supabase
       .from('email_queue')
       .select('*')
-      .eq('status', 'pending')
-      .lt('retry_count', 3) // Hardcoded max_retries for safety
+      .in('status', ['pending', 'failed']) // Retry failed ones too
+      .lt('retry_count', 3)
       .order('created_at', { ascending: true })
       .limit(50); // Process up to 50 emails per run
 

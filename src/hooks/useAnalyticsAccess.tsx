@@ -22,33 +22,20 @@ export const useAnalyticsAccess = (): AnalyticsAccess => {
     }
 
     try {
-      // Get user info from app_users table
-      const { data: userData, error: userError } = await supabase
-        .from('app_users')
-        .select('user_id')
-        .eq('auth_id', user.id)
-        .single();
-
-      if (userError || !userData) {
-        return {
-          canAccessAnalytics: true,
-          canAccessAllTabs: true,
-          planName: 'Free Trial'
-        };
-      }
-
-      // Get current subscription
+      // Get current subscription - user.id is the same as app_users.id
       const { data: subData, error: subError } = await supabase
-        .from('user_subscriptions_new')
+        .from('user_subscriptions')
         .select(`
           *,
           subscription_plans (
             name
           )
         `)
-        .eq('user_id', userData.user_id)
-        .eq('status', 'active')
-        .single();
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       let planName = 'Free Trial';
       

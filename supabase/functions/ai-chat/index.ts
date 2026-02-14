@@ -15,9 +15,17 @@ Deno.serve(async (req) => {
     const { user } = await verifyAuth(req);
     
     // Check rate limit
+    // We pass 'ai-chat' as keyPrefix. 
+    // IMPORTANT: checkRateLimit now counts 'function_logs'. 
+    // So for this to work, we MUST log the function call at the end (PerformanceMonitor does this).
     const rateLimit = await checkRateLimit(user.id, AI_RATE_LIMITS.chat);
+    
     if (!rateLimit.allowed) {
+      console.warn(`Rate limit exceeded for user ${user.id} on ai-chat`);
       await logRateLimitExceeded(user.id, 'ai-chat', req.headers.get('x-forwarded-for') || undefined);
+      // We don't log this *failed* attempt to function_logs as a success, 
+      // but maybe as a failure/blocked if we wanted to track it.
+      // PerformanceMonitor.end usually logs.
       await monitor.end(false, 'Rate limit exceeded');
       return errorResponse('Rate limit exceeded. Please try again later.', 429);
     }

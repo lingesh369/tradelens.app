@@ -311,8 +311,8 @@ const Settings = () => {
                           </TableRow>
                         ) : tags.length > 0 ? (
                           tags.map(tag => (
-                            <TableRow key={tag.tag_id}>
-                              <TableCell className="px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 text-xs sm:text-sm font-medium">{tag.tag_name}</TableCell>
+                            <TableRow key={tag.id}>
+                              <TableCell className="px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 text-xs sm:text-sm font-medium">{tag.name}</TableCell>
                               <TableCell className="px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 text-xs sm:text-sm">
                                 <span className={`px-2 py-1 rounded-full text-xs ${tag.tag_type === 'Mistake' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
                                   {tag.tag_type}
